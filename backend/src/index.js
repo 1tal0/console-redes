@@ -6,6 +6,7 @@ require('dotenv').config();
 require('./database/init');
 
 const authRoutes = require('./routes/authRoutes');
+const metricsRoutes = require('./routes/metricsRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,7 @@ app.use(express.json());
 
 // Rotas da API
 app.use('/api/auth', authRoutes);
+app.use('/api/metrics', metricsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'online', server: 'Debian 13', timestamp: new Date() });
