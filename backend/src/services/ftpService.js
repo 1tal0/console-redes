@@ -7,7 +7,7 @@ const FTP_CONFIG = {
   host: '192.168.100.10',
   port: 21,
   user: 'ftpuser',
-  password: 'ftp',
+  password: 'ftpuser123', // Palavra-passe configurada na N1
   secure: false
 };
 

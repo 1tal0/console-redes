@@ -10,7 +10,6 @@ const upload = multer({ dest: path.resolve(__dirname, '../../uploads') });
 
 // Rotas
 router.get('/', verifyToken, getFileList); // Todos autenticados podem ver
-
 router.post(
   '/upload', 
   verifyToken, 
