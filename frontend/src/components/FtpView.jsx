@@ -156,13 +156,13 @@ export default function FtpView() {
                 <tr key={idx} className="hover:bg-slate-700/20">
                   <td className="p-3.5 font-mono text-slate-100">{file.name}</td>
                   <td className="p-3.5">{(file.size / 1024).toFixed(2)} KB</td>
-                  <td className="p-3.5">{new Date(file.modifiedAt).toLocaleString()}</td>
+                  <td className="p-3.5">{new Date(file.modifiedAt).toLocaleString() | file.modifiedAt}</td>
                   <td className="p-3.5 text-right space-x-2">
                     <button
                       onClick={() => downloadConsoleFile(file.name)}
                       className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2.5 py-1 rounded transition"
                     >
-                      Download (Console)
+                      Download
                     </button>
                     <button
                       onClick={() => verifyIntegrity(file.name)}
