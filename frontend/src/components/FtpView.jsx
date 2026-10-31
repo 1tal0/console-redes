@@ -41,7 +41,7 @@ export default function FtpView() {
       const res = await api.post('/files/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setMessage(`Ficheiro enviado com sucesso! SHA-256: ${res.data.sha256}`);
+      setMessage(`Ficheiro enviado com sucesso! SHA-256: ${res.data.integrity.originalHash}`);
       setSelectedFile(null);
       fetchFiles();
     } catch (err) {

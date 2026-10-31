@@ -7,7 +7,7 @@ const FTP_CONFIG = {
   host: '192.168.100.10',
   port: 21,
   user: 'ftpuser',
-  password: 'ftp', // Palavra-passe configurada na N1
+  password: 'ftp',
   secure: false
 };
 
@@ -21,7 +21,7 @@ const listFiles = async () => {
     return list.map(item => ({
       name: item.name,
       size: item.size,
-      date: item.rawModifiedAt || item.date,
+      modifiedAt: item.rawModifiedAt || item.date,
       type: item.isDirectory ? 'directory' : 'file'
     }));
   } finally {
@@ -35,7 +35,6 @@ const uploadFile = async (localFilePath, originalName) => {
   client.ftp.verbose = false;
   try {
     await client.access(FTP_CONFIG);
-    // Envia o arquivo temporário salvo pelo Multer diretamente ao FTP passivo
     await client.uploadFrom(localFilePath, `/arquivos/${originalName}`);
     return { success: true, filename: originalName };
   } finally {
@@ -51,7 +50,7 @@ const getLocalHash = (filePath) => {
   return hashSum.digest('hex');
 };
 
-// Baixa arquivo via HTTP Apache e calcula Hash SHA-256 para integridade
+// Baixa arquivo via HTTP Apache e calcula Hash SHA-256 para integridade no Upload
 const checkHttpIntegrity = async (filename, localFilePath) => {
   const originalHash = getLocalHash(localFilePath);
   try {
@@ -77,4 +76,21 @@ const checkHttpIntegrity = async (filename, localFilePath) => {
   }
 };
 
-module.exports = { listFiles, uploadFile, checkHttpIntegrity };
+// Baixa arquivo via HTTP e retorna apenas o hash SHA-256 (para a tabela do frontend)
+const checkExistingFileIntegrity = async (filename) => {
+  const httpResponse = await axios.get(`http://192.168.100.10/arquivos/${encodeURIComponent(filename)}`, {
+    responseType: 'arraybuffer'
+  });
+
+  const httpHashSum = crypto.createHash('sha256');
+  httpHashSum.update(httpResponse.data);
+  const sha256 = httpHashSum.digest('hex');
+
+  return {
+    filename,
+    sha256,
+    status: 'ok'
+  };
+};
+
+module.exports = { listFiles, uploadFile, checkHttpIntegrity, checkExistingFileIntegrity };

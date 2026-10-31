@@ -1,4 +1,4 @@
-const { listFiles, uploadFile, checkHttpIntegrity } = require('../services/ftpService');
+const { listFiles, uploadFile, checkHttpIntegrity, checkExistingFileIntegrity } = require('../services/ftpService');
 const fs = require('fs');
 
 const getFileList = async (req, res) => {
@@ -35,6 +35,7 @@ const handleUpload = async (req, res) => {
       message: 'Arquivo enviado com sucesso via FTP!',
       filename: originalName,
       size: req.file.size,
+      sha256: integrity.httpHash,
       integrity
     });
   } catch (error) {
@@ -46,4 +47,21 @@ const handleUpload = async (req, res) => {
   }
 };
 
-module.exports = { getFileList, handleUpload };
+// Nova controller para checar integridade de um arquivo existente
+const checkIntegrity = async (req, res) => {
+  const { filename } = req.params;
+  
+  if (!filename) {
+    return res.status(400).json({ error: 'Nome do arquivo é obrigatório.' });
+  }
+
+  try {
+    const result = await checkExistingFileIntegrity(filename);
+    return res.json(result);
+  } catch (error) {
+    console.error('Erro ao verificar integridade:', error);
+    return res.status(500).json({ error: 'Falha ao verificar integridade do arquivo via HTTP.' });
+  }
+};
+
+module.exports = { getFileList, handleUpload, checkIntegrity };
