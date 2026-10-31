@@ -1,41 +1,35 @@
-const { sendEmail, listEmails } = require('../services/mailService');
+const { getImapMessages, sendSmtpMail } = require('../services/mailService');
 
-const getMailbox = async (req, res) => {
+const getEmails = async (req, res) => {
   const { account, password, folder } = req.query;
 
   if (!account || !password) {
-    return res.status(400).json({ error: 'Conta de e-mail e palavra-passe são obrigatórias.' });
+    return res.status(400).json({ error: 'E-mail e palavra-passe são obrigatórios.' });
   }
 
   try {
-    const messages = await listEmails(account, password, folder || 'INBOX');
-    return res.json({ account, folder: folder || 'INBOX', count: messages.length, messages });
+    const messages = await getImapMessages(account, password, folder || 'INBOX');
+    return res.json({ account, folder: folder || 'INBOX', messages });
   } catch (error) {
-    console.error('Erro ao consultar IMAP:', error);
-    return res.status(500).json({ error: 'Falha na autenticação ou consulta da caixa de correio no Dovecot.' });
+    console.error('Erro de Autenticação IMAP:', error.message);
+    return res.status(401).json({ error: 'Credenciais inválidas ou erro no serviço Dovecot.' });
   }
 };
 
-const handleSendEmail = async (req, res) => {
+const sendEmail = async (req, res) => {
   const { account, password, to, subject, bodyText } = req.body;
 
   if (!account || !password || !to || !subject || !bodyText) {
-    return res.status(400).json({ error: 'Campos obrigatórios: account, password, to, subject e bodyText.' });
+    return res.status(400).json({ error: 'Todos os campos do e-mail são obrigatórios.' });
   }
 
   try {
-    const result = await sendEmail(account, password, to, subject, bodyText);
-    return res.json({
-      message: 'Operação de e-mail concluída.',
-      result
-    });
-  } catch (err) {
-    console.error('Erro na operação de e-mail:', err);
-    if (err.stage === 'SMTP') {
-      return res.status(500).json({ error: 'Falha no envio via SMTP (Postfix): ' + err.error });
-    }
-    return res.status(500).json({ error: 'Erro interno no processamento de e-mail.' });
+    await sendSmtpMail(account, password, to, subject, bodyText);
+    return res.json({ message: 'E-mail enviado com sucesso via SMTP!' });
+  } catch (error) {
+    console.error('Erro de Envio SMTP:', error.message);
+    return res.status(500).json({ error: 'Falha ao enviar e-mail via Postfix.' });
   }
 };
 
-module.exports = { getMailbox, handleSendEmail };
+module.exports = { getEmails, sendEmail };

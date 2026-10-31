@@ -1,75 +1,139 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import api from '../services/api';
 
 export default function MailView() {
-  const [account, setAccount] = useState('aluno@empresa.test');
-  const [password, setPassword] = useState('aluno');
+  // Estado da Sessão do Cliente de E-mail
+  const [session, setSession] = useState(null); // { account, password }
+  const [loginEmail, setLoginEmail] = useState('aluno@empresa.test');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [authenticating, setAuthenticating] = useState(false);
+
+  // Estado das Mensagens e Navegação Thunderbird
   const [folder, setFolder] = useState('INBOX');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  // Estado do Formulário de Envio
-  const [to, setTo] = useState('suporte@empresa.test');
+  const [selectedMail, setSelectedMail] = useState(null); // E-mail aberto no Modal
+
+  // Estado de Composição / Resposta
+  const [showComposeModal, setShowComposeModal] = useState(false);
+  const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
   const [bodyText, setBodyText] = useState('');
   const [sending, setSending] = useState(false);
-  const [sendResult, setSendResult] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
 
-  const fetchEmails = async () => {
-    if (!password) return;
-    setLoading(true);
-    setError('');
+  // 1. Login na Conta de E-mail (Dovecot IMAP)
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setAuthenticating(true);
+
     try {
       const res = await api.get('/mail', {
-        params: { account, password, folder }
+        params: { account: loginEmail, password: loginPassword, folder: 'INBOX' }
+      });
+
+      setSession({ account: loginEmail, password: loginPassword });
+      setMessages(res.data.messages || []);
+      setFolder('INBOX');
+    } catch (err) {
+      setLoginError(err.response?.data?.error || 'Erro ao autenticar no servidor Dovecot.');
+    } finally {
+      setAuthenticating(false);
+    }
+  };
+
+  // 2. Encerrar Sessão da Conta
+  const handleLogoutMail = () => {
+    setSession(null);
+    setLoginPassword('');
+    setMessages([]);
+    setSelectedMail(null);
+  };
+
+  // 3. Buscar Mensagens ao Mudar de Pasta
+  const loadFolder = async (targetFolder) => {
+    if (!session) return;
+    setLoading(true);
+    setFolder(targetFolder);
+    try {
+      const res = await api.get('/mail', {
+        params: { account: session.account, password: session.password, folder: targetFolder }
       });
       setMessages(res.data.messages || []);
     } catch (err) {
-      setError('Falha ao autenticar ou consultar as mensagens no Dovecot.');
+      alert('Erro ao carregar mensagens da pasta.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchEmails();
-  }, [account, folder]);
+  // 4. Iniciar Resposta Direta a um E-mail
+  const handleReply = (mail) => {
+    setTo(mail.from);
+    setSubject(mail.subject.startsWith('Re:') ? mail.subject : `Re: ${mail.subject}`);
+    setBodyText(`\n\n--- Em ${new Date(mail.date).toLocaleString()}, ${mail.from} escreveu:\n> ${mail.text}`);
+    setSelectedMail(null);
+    setShowComposeModal(true);
+  };
 
+  // 5. Enviar Mensagem via SMTP
   const handleSendEmail = async (e) => {
     e.preventDefault();
     setSending(true);
-    setSendResult('');
+    setStatusMessage('');
+
     try {
-      await api.post('/mail/send', { account, password, to, subject, bodyText });
-      setSendResult('E-mail enviado via SMTP e guardado na pasta Sent do IMAP!');
-      setSubject('');
-      setBodyText('');
-      if (folder === 'Sent') fetchEmails();
+      await api.post('/mail/send', {
+        account: session.account,
+        password: session.password,
+        to,
+        subject,
+        bodyText
+      });
+
+      setStatusMessage('E-mail enviado com sucesso via SMTP!');
+      setTimeout(() => {
+        setShowComposeModal(false);
+        setStatusMessage('');
+        setTo('');
+        setSubject('');
+        setBodyText('');
+        if (folder === 'Sent') loadFolder('Sent');
+      }, 1200);
     } catch (err) {
-      setSendResult('Erro no envio via SMTP.');
+      alert('Falha ao enviar e-mail via Postfix.');
     } finally {
       setSending(false);
     }
   };
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* Formulário de Autenticação de Conta & Envio SMTP */}
-      <div className="space-y-4 md:col-span-1">
-        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-3">
-          <h3 className="text-sm font-semibold uppercase text-slate-400">Conta de Correio</h3>
+  // TELA DE LOGIN ESTILO THUNDERBIRD
+  if (!session) {
+    return (
+      <div className="max-w-md mx-auto my-10 bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-xl space-y-6">
+        <div className="text-center space-y-1">
+          <div className="inline-flex p-3 bg-indigo-500/10 rounded-full text-indigo-400 mb-2">
+            ✉
+          </div>
+          <h2 className="text-xl font-bold text-slate-100">Cliente de Correio (Thunderbird N2)</h2>
+          <p className="text-xs text-slate-400">Insira as credenciais Linux (PAM) para aceder à conta</p>
+        </div>
+
+        {loginError && (
+          <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded text-center">
+            {loginError}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-[10px] text-slate-400 uppercase mb-1">Selecionar Conta</label>
+            <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Endereço de E-mail</label>
             <select
-              value={account}
-              onChange={(e) => {
-                const acc = e.target.value;
-                setAccount(acc);
-                setPassword(acc.startsWith('aluno') ? 'aluno' : 'suporte');
-                setTo(acc.startsWith('aluno') ? 'suporte@empresa.test' : 'aluno@empresa.test');
-              }}
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-100"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
             >
               <option value="aluno@empresa.test">aluno@empresa.test</option>
               <option value="suporte@empresa.test">suporte@empresa.test</option>
@@ -77,112 +141,249 @@ export default function MailView() {
           </div>
 
           <div>
-            <label className="block text-[10px] text-slate-400 uppercase mb-1">Palavra-passe PAM</label>
+            <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Palavra-passe</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-100"
+              placeholder="Digite a palavra-passe..."
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+              required
             />
           </div>
 
           <button
-            onClick={fetchEmails}
-            className="w-full bg-slate-700 hover:bg-slate-600 text-slate-100 text-xs py-2 rounded transition"
+            type="submit"
+            disabled={authenticating}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded text-xs transition disabled:opacity-50"
           >
-            Sincronizar Caixa IMAP
+            {authenticating ? 'A autenticar no Dovecot...' : 'Aceder à Conta'}
+          </button>
+        </form>
+
+        <div className="text-[11px] text-slate-500 text-center border-t border-slate-700/50 pt-4">
+          Contas predefinidas: <code className="text-slate-400">aluno (aluno)</code> | <code className="text-slate-400">suporte (suporte)</code>
+        </div>
+      </div>
+    );
+  }
+
+  // PAINEL DE E-MAIL ESTILO THUNDERBIRD APÓS LOGIN
+  return (
+    <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-2xl min-h-[550px] flex flex-col">
+      {/* Barra de Ferramentas Superior Thunderbird */}
+      <div className="bg-slate-900/80 border-b border-slate-700 px-5 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setTo('');
+              setSubject('');
+              setBodyText('');
+              setShowComposeModal(true);
+            }}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded flex items-center gap-1.5 transition"
+          >
+            ✏ Escrever Mensagem
+          </button>
+          <button
+            onClick={() => loadFolder(folder)}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded transition"
+          >
+            🔄 Sincronizar
           </button>
         </div>
 
-        {/* Novo E-mail */}
-        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-3">
-          <h3 className="text-sm font-semibold uppercase text-slate-400">Nova Mensagem (SMTP)</h3>
-          {sendResult && <p className="text-xs text-emerald-400 bg-emerald-500/10 p-2 rounded border border-emerald-500/20">{sendResult}</p>}
-          <form onSubmit={handleSendEmail} className="space-y-3">
-            <div>
-              <input
-                type="email"
-                placeholder="Para: destinatario@empresa.test"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-100"
-                required
-              />
-            </div>
-            <div>
-              <input
-                type="text"
-                placeholder="Assunto"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-100"
-                required
-              />
-            </div>
-            <div>
-              <textarea
-                placeholder="Mensagem..."
-                rows="4"
-                value={bodyText}
-                onChange={(e) => setBodyText(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-100 resize-none"
-                required
-              ></textarea>
-            </div>
-            <button
-              type="submit"
-              disabled={sending}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium py-2 rounded transition disabled:opacity-50"
-            >
-              {sending ? 'A Enviar...' : 'Enviar E-mail'}
-            </button>
-          </form>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-indigo-400 font-mono bg-indigo-500/10 px-3 py-1 rounded border border-indigo-500/20">
+            {session.account}
+          </span>
+          <button
+            onClick={handleLogoutMail}
+            className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded transition"
+          >
+            Sair da Conta
+          </button>
         </div>
       </div>
 
-      {/* Listagem de E-mails IMAP */}
-      <div className="md:col-span-2 space-y-4">
-        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFolder('INBOX')}
-              className={`px-3 py-1.5 rounded text-xs font-semibold ${folder === 'INBOX' ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400 hover:text-slate-200'}`}
-            >
-              Caixa de Entrada (INBOX)
-            </button>
-            <button
-              onClick={() => setFolder('Sent')}
-              className={`px-3 py-1.5 rounded text-xs font-semibold ${folder === 'Sent' ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400 hover:text-slate-200'}`}
-            >
-              Enviados (Sent)
-            </button>
-          </div>
-          <span className="text-xs text-slate-400">{messages.length} mensagens</span>
+      {/* Estrutura Principal: Arvore de Pastas + Lista de E-mails */}
+      <div className="flex-1 flex flex-col md:flex-row">
+        {/* Painel Lateral de Pastas */}
+        <div className="w-full md:w-56 bg-slate-900/40 border-r border-slate-700/60 p-4 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 px-2">Pastas de Correio</p>
+          <button
+            onClick={() => loadFolder('INBOX')}
+            className={`w-full text-left px-3 py-2 rounded text-xs font-semibold flex justify-between items-center transition ${
+              folder === 'INBOX' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/40'
+            }`}
+          >
+            <span>📥 Entrada (INBOX)</span>
+          </button>
+          <button
+            onClick={() => loadFolder('Sent')}
+            className={`w-full text-left px-3 py-2 rounded text-xs font-semibold flex justify-between items-center transition ${
+              folder === 'Sent' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/40'
+            }`}
+          >
+            <span>📤 Enviados (Sent)</span>
+          </button>
         </div>
 
-        {error && <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded text-sm">{error}</div>}
-
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        {/* Tabela / Lista de Mensagens */}
+        <div className="flex-1 bg-slate-800 flex flex-col">
           {loading ? (
-            <div className="p-6 text-center text-slate-400 text-xs">A ligar ao Dovecot e a ler a caixa de correio...</div>
+            <div className="p-10 text-center text-slate-400 text-xs">A ler mensagens do servidor IMAP...</div>
           ) : messages.length === 0 ? (
-            <div className="p-6 text-center text-slate-400 text-xs">Nenhuma mensagem nesta pasta.</div>
+            <div className="p-10 text-center text-slate-400 text-xs">Nenhum e-mail encontrado na pasta {folder}.</div>
           ) : (
-            <div className="divide-y divide-slate-700/50">
-              {messages.map((msg, idx) => (
-                <div key={idx} className="p-4 hover:bg-slate-700/20 transition space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-slate-200">De: {msg.from}</span>
-                    <span className="text-[10px] text-slate-500">{new Date(msg.date).toLocaleString()}</span>
-                  </div>
-                  <p className="text-xs font-medium text-indigo-400">Assunto: {msg.subject}</p>
-                  <p className="text-[11px] text-slate-400">Para: {msg.to}</p>
-                </div>
-              ))}
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-900/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
+                  <tr>
+                    <th className="p-3">De / Para</th>
+                    <th className="p-3">Assunto</th>
+                    <th className="p-3 text-right">Data</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
+                  {messages.map((mail, idx) => (
+                    <tr
+                      key={idx}
+                      onClick={() => setSelectedMail(mail)}
+                      className="hover:bg-indigo-500/10 cursor-pointer transition"
+                    >
+                      <td className="p-3 font-semibold text-slate-200 truncate max-w-[180px]">
+                        {folder === 'INBOX' ? mail.from : mail.to}
+                      </td>
+                      <td className="p-3 font-medium text-slate-100 truncate max-w-[300px]">
+                        {mail.subject}
+                      </td>
+                      <td className="p-3 text-right text-slate-400 text-[11px] whitespace-nowrap">
+                        {new Date(mail.date).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       </div>
+
+      {/* MODAL DE LEITURA COMPLETA DO E-MAIL */}
+      {selectedMail && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 max-w-2xl w-full space-y-4 shadow-2xl">
+            <div className="flex justify-between items-start border-b border-slate-700 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-100">{selectedMail.subject}</h3>
+                <p className="text-xs text-indigo-400 mt-1">De: {selectedMail.from}</p>
+                <p className="text-[11px] text-slate-400">Para: {selectedMail.to} | {new Date(selectedMail.date).toLocaleString()}</p>
+              </div>
+              <button
+                onClick={() => setSelectedMail(null)}
+                className="text-slate-400 hover:text-slate-200 text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Corpo do E-mail */}
+            <div className="bg-slate-900 p-4 rounded-lg border border-slate-700/60 max-h-64 overflow-y-auto text-xs font-mono text-slate-200 whitespace-pre-wrap">
+              {selectedMail.text || '(Mensagem sem corpo de texto)'}
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <button
+                onClick={() => handleReply(selectedMail)}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded transition"
+              >
+                ↩ Responder Mensagem
+              </button>
+
+              <button
+                onClick={() => setSelectedMail(null)}
+                className="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2 rounded transition"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE COMPOSIÇÃO / RESPOSTA DE E-MAIL */}
+      {showComposeModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 max-w-lg w-full space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-700 pb-3">
+              <h3 className="text-sm font-bold text-slate-100">Nova Mensagem de Correio</h3>
+              <button onClick={() => setShowComposeModal(false)} className="text-slate-400 hover:text-slate-200 text-sm font-bold">✕</button>
+            </div>
+
+            {statusMessage && (
+              <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded text-center">
+                {statusMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleSendEmail} className="space-y-3">
+              <div>
+                <label className="block text-[10px] text-slate-400 uppercase mb-1">Para</label>
+                <input
+                  type="email"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-100"
+                  placeholder="destinatario@empresa.test"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 uppercase mb-1">Assunto</label>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-100"
+                  placeholder="Assunto da mensagem"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 uppercase mb-1">Corpo da Mensagem</label>
+                <textarea
+                  rows="6"
+                  value={bodyText}
+                  onChange={(e) => setBodyText(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-100 font-mono resize-none"
+                  placeholder="Escreva aqui a sua mensagem..."
+                  required
+                ></textarea>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowComposeModal(false)}
+                  className="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2 rounded transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-5 py-2 rounded transition disabled:opacity-50"
+                >
+                  {sending ? 'A enviar...' : 'Enviar Mensagem'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
