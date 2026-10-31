@@ -17,6 +17,7 @@ const authRoutes = require('./routes/authRoutes');
 const metricsRoutes = require('./routes/metricsRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const mailRoutes = require('./routes/mailRoutes');
+const sshRoutes = require('./routes/sshRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/metrics', metricsRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/mail', mailRoutes);
+app.use('/api/ssh', sshRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'online', server: 'Debian 13', timestamp: new Date() });
