@@ -29,7 +29,7 @@ export default function App() {
       {/* Header Superior */}
       <header className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center">
         <div>
-          <h1 className="text-lg font-bold text-slate-100">Console N2 - Servidor Debian</h1>
+          <h1 className="text-lg font-bold text-slate-100">Painel Administrativo - Servidor Debian</h1>
           <p className="text-xs text-slate-400 font-mono">192.168.100.10</p>
         </div>
 

@@ -31,7 +31,7 @@ export default function LoginView({ onLoginSuccess }) {
     <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
       <div className="bg-slate-800 p-8 rounded-xl shadow-2xl border border-slate-700 w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-slate-100">Console N2 - Redes</h1>
+          <h1 className="text-2xl font-bold text-slate-100">Servidor Debian</h1>
           <p className="text-sm text-slate-400 mt-1">Painel de Gerenciamento de Infraestrutura</p>
         </div>
 
@@ -49,7 +49,6 @@ export default function LoginView({ onLoginSuccess }) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500"
-              placeholder="Ex: admin, operador, leitor"
               required
             />
           </div>
@@ -61,7 +60,6 @@ export default function LoginView({ onLoginSuccess }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500"
-              placeholder="••••••••"
               required
             />
           </div>
@@ -74,13 +72,6 @@ export default function LoginView({ onLoginSuccess }) {
             {loading ? 'Autenticando...' : 'Entrar no Sistema'}
           </button>
         </form>
-
-        <div className="mt-6 pt-4 border-t border-slate-700/50 text-xs text-slate-500 text-center space-y-1">
-          <p>Credenciais Padrão:</p>
-          <p><span className="text-slate-400 font-mono">admin / admin123</span> (Acesso Total)</p>
-          <p><span className="text-slate-400 font-mono">operador / operador123</span> (Operações)</p>
-          <p><span className="text-slate-400 font-mono">leitor / leitor123</span> (Consulta)</p>
-        </div>
       </div>
     </div>
   );
