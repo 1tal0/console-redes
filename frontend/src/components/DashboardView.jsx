@@ -20,7 +20,7 @@ export default function DashboardView() {
 
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 5000); // Atualiza a cada 5s
+    const interval = setInterval(fetchMetrics, 1000); // Atualiza a cada 1s
     return () => clearInterval(interval);
   }, []);
 
