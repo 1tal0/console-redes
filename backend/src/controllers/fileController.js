@@ -60,8 +60,8 @@ const handleDownload = async (req, res) => {
   }
 
   try {
-    const encodedFilename = encodeURIComponent(filename);
-    res.setHeader('Content-Disposition', `attachment; filename="${encodedFilename}"`);
+    // Configura os cabeçalhos para o navegador reconhecer o download
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
     
     await downloadFileStream(filename, res);

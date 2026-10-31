@@ -49,8 +49,8 @@ const downloadFileStream = async (filename, res) => {
   client.ftp.verbose = false;
   try {
     await client.access(FTP_CONFIG);
-    // Método correto no basic-ftp para enviar a stream ao res (Writable Stream)
-    await client.downloadToToStream(res, `/arquivos/${filename}`);
+    // No basic-ftp, passar a Writable Stream (res) diretamente no downloadTo faz a transferência via stream
+    await client.downloadTo(res, `/arquivos/${filename}`);
   } finally {
     client.close();
   }
