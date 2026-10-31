@@ -60,8 +60,10 @@ const handleDownload = async (req, res) => {
   }
 
   try {
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    const encodedFilename = encodeURIComponent(filename);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodedFilename}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
+    
     await downloadFileStream(filename, res);
   } catch (error) {
     console.error('Erro ao baixar arquivo via FTP:', error);
