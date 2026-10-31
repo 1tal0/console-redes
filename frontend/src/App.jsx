@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import LoginView from './components/LoginView';
 import DashboardView from './components/DashboardView';
+import FtpView from './components/FtpView';
+import MailView from './components/MailView';
+import SshView from './components/SshView';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -75,9 +78,9 @@ export default function App() {
       {/* Conteúdo Principal */}
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
         {activeTab === 'dashboard' && <DashboardView />}
-        {activeTab === 'files' && <div className="text-slate-400">Módulo FTP (Componente a seguir)</div>}
-        {activeTab === 'mail' && <div className="text-slate-400">Módulo E-mail (Componente a seguir)</div>}
-        {activeTab === 'ssh' && <div className="text-slate-400">Módulo SSH (Componente a seguir)</div>}
+        {activeTab === 'files' && <FtpView />}
+        {activeTab === 'mail' && <MailView />}
+        {activeTab === 'ssh' && <SshView />}
       </main>
     </div>
   );
