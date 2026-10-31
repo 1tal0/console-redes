@@ -4,6 +4,7 @@ import DashboardView from './components/DashboardView';
 import FtpView from './components/FtpView';
 import MailView from './components/MailView';
 import SshView from './components/SshView';
+import LogsView from './components/LogsView'; // Importar novo componente
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -56,20 +57,23 @@ export default function App() {
       {/* Navegação Secundária */}
       <nav className="bg-slate-800/50 border-b border-slate-700/50 px-6">
         <div className="flex gap-4">
-          {['dashboard', 'files', 'mail', 'ssh'].map((tab) => (
+          {[
+            { id: 'dashboard', label: 'Observabilidade' },
+            { id: 'files', label: 'Arquivos & FTP' },
+            { id: 'mail', label: 'Correio E-mail' },
+            { id: 'ssh', label: 'Operação SSH' },
+            { id: 'logs', label: 'Logs do Servidor' }
+          ].map((tab) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               className={`py-3 px-4 text-xs font-semibold uppercase tracking-wider border-b-2 transition ${
-                activeTab === tab
+                activeTab === tab.id
                   ? 'border-indigo-500 text-indigo-400'
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
-              {tab === 'dashboard' && 'Observabilidade'}
-              {tab === 'files' && 'Arquivos & FTP'}
-              {tab === 'mail' && 'Correio E-mail'}
-              {tab === 'ssh' && 'Operação SSH'}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -81,6 +85,7 @@ export default function App() {
         {activeTab === 'files' && <FtpView />}
         {activeTab === 'mail' && <MailView />}
         {activeTab === 'ssh' && <SshView />}
+        {activeTab === 'logs' && <LogsView />}
       </main>
     </div>
   );
