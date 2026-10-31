@@ -1,8 +1,9 @@
 const Imap = require('imap');
 const nodemailer = require('nodemailer');
+const MailComposer = require('nodemailer/lib/mail-composer');
 const { simpleParser } = require('mailparser');
 
-// 1. Consultar mensagens IMAP do Dovecot (lógica original)
+// 1. Consultar mensagens IMAP do Dovecot
 const getImapMessages = (account, password, folder = 'INBOX') => {
   return new Promise((resolve, reject) => {
     const username = account.split('@')[0];
@@ -29,31 +30,47 @@ const getImapMessages = (account, password, folder = 'INBOX') => {
         }
 
         const fetch = imap.seq.fetch(`1:${box.total}`, { bodies: '' });
-        const messages = [];
+        const parsingTasks = [];
 
         fetch.on('message', (msg) => {
-          msg.on('body', (stream) => {
-            simpleParser(stream, async (err, parsed) => {
-              if (!err) {
-                messages.push({
-                  id: parsed.messageId,
-                  from: parsed.from?.text || '',
-                  to: parsed.to?.text || '',
-                  subject: parsed.subject || '(sem assunto)',
-                  date: parsed.date || new Date(),
-                  text: parsed.text || '',
-                  html: parsed.html || false
-                });
-              }
+          // Cada mensagem gera uma Promise que só resolve quando o parse termina
+          const task = new Promise((resolveMsg) => {
+            msg.on('body', (stream) => {
+              simpleParser(stream)
+                .then((parsed) => {
+                  resolveMsg({
+                    id: parsed.messageId,
+                    from: parsed.from?.text || '',
+                    to: parsed.to?.text || '',
+                    subject: parsed.subject || '(sem assunto)',
+                    date: parsed.date || new Date(),
+                    text: parsed.text || '',
+                    html: parsed.html || false
+                  });
+                })
+                .catch(() => resolveMsg(null));
             });
           });
+
+          parsingTasks.push(task);
         });
 
-        fetch.once('end', () => {
+        fetch.once('error', (err) => {
           imap.end();
-          setTimeout(() => {
-            resolve(messages.reverse());
-          }, 600);
+          reject(err);
+        });
+
+        fetch.once('end', async () => {
+          imap.end();
+
+          // Aguarda o parse de TODAS as mensagens antes de responder
+          const results = await Promise.all(parsingTasks);
+
+          const messages = results
+            .filter(Boolean)
+            .sort((a, b) => new Date(b.date) - new Date(a.date)); // mais recentes primeiro
+
+          resolve(messages);
         });
       });
     });
@@ -66,7 +83,42 @@ const getImapMessages = (account, password, folder = 'INBOX') => {
   });
 };
 
-// 2. Enviar E-mail via SMTP Postfix
+// 2. Guardar cópia do e-mail enviado na pasta Sent (via IMAP APPEND)
+const appendToSent = (account, password, mailOptions, folder = 'Sent') => {
+  return new Promise((resolve, reject) => {
+    const username = account.split('@')[0];
+
+    const imap = new Imap({
+      user: username,
+      password: password,
+      host: '192.168.100.10',
+      port: 143,
+      tls: false,
+      authTimeout: 5000
+    });
+
+    imap.once('ready', () => {
+      new MailComposer(mailOptions).compile().build((err, rawMessage) => {
+        if (err) {
+          imap.end();
+          return reject(err);
+        }
+
+        imap.append(rawMessage, { mailbox: folder, flags: ['\\Seen'] }, (err) => {
+          imap.end();
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    });
+
+    imap.once('error', (err) => reject(err));
+
+    imap.connect();
+  });
+};
+
+// 3. Enviar E-mail via SMTP Postfix
 const sendSmtpMail = async (account, password, to, subject, bodyText) => {
   const username = account.split('@')[0];
 
@@ -88,7 +140,16 @@ const sendSmtpMail = async (account, password, to, subject, bodyText) => {
     text: bodyText
   };
 
-  return await transporter.sendMail(mailOptions);
+  const info = await transporter.sendMail(mailOptions);
+
+  // Salva cópia no Sent sem derrubar o envio caso falhe
+  try {
+    await appendToSent(account, password, mailOptions);
+  } catch (error) {
+    console.error('Erro ao salvar cópia na pasta Sent:', error.message);
+  }
+
+  return info;
 };
 
 module.exports = { getImapMessages, sendSmtpMail };
