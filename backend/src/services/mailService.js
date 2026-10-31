@@ -1,7 +1,6 @@
 const nodemailer = require('nodemailer');
 const { ImapFlow } = require('imapflow');
 
-// Configuração SMTP local do Postfix
 const createSmtpTransporter = (user, pass) => {
   return nodemailer.createTransport({
     host: '192.168.100.10',
@@ -12,7 +11,6 @@ const createSmtpTransporter = (user, pass) => {
   });
 };
 
-// Configuração cliente IMAP do Dovecot
 const createImapClient = (user, pass) => {
   return new ImapFlow({
     host: '192.168.100.10',
@@ -47,10 +45,27 @@ const sendEmail = async (account, password, to, subject, bodyText) => {
   const imapClient = createImapClient(user, pass);
   try {
     await imapClient.connect();
-    
-    const rawMessage = `From: ${user}\r\nTo: ${to}\r\nSubject: ${subject}\r\nDate: ${new Date().toUTCString()}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${bodyText}`;
 
-    await imapClient.append('Sent', rawMessage, ['\\Seen']);
+    // Garante que a pasta Sent existe ou cria se necessário
+    const mailboxes = await imapClient.list();
+    let targetFolder = mailboxes.find(m => m.name.toLowerCase() === 'sent' || m.path.toLowerCase() === 'sent')?.path || 'Sent';
+
+    try {
+      await imapClient.mailboxCreate(targetFolder);
+    } catch (e) {
+      // Pasta já existe
+    }
+
+    const rawMessage = Buffer.from(
+      `From: ${user}\r\n` +
+      `To: ${to}\r\n` +
+      `Subject: ${subject}\r\n` +
+      `Date: ${new Date().toUTCString()}\r\n` +
+      `Content-Type: text/plain; charset=utf-8\r\n\r\n` +
+      `${bodyText}`
+    );
+
+    await imapClient.append(targetFolder, rawMessage, ['\\Seen']);
     await imapClient.logout();
   } catch (imapErr) {
     return {
@@ -76,19 +91,32 @@ const listEmails = async (account, password, folder = 'INBOX') => {
 
   try {
     await imapClient.connect();
-    const lock = await imapClient.getMailboxLock(folder);
+
+    // Normaliza o nome da caixa (ex: Sent vs INBOX)
+    let targetFolder = folder;
+    if (folder.toLowerCase() === 'sent') {
+      const mailboxes = await imapClient.list();
+      targetFolder = mailboxes.find(m => m.name.toLowerCase() === 'sent' || m.path.toLowerCase() === 'sent')?.path || 'Sent';
+    }
+
+    const lock = await imapClient.getMailboxLock(targetFolder);
     const messages = [];
 
     try {
-      for await (let message of imapClient.fetch('1:*', { envelope: true, bodyStructure: true })) {
-        messages.push({
-          uid: message.uid,
-          seq: message.seq,
-          from: message.envelope.from ? message.envelope.from[0].address : '',
-          to: message.envelope.to ? message.envelope.to[0].address : '',
-          subject: message.envelope.subject || '(sem assunto)',
-          date: message.envelope.date
-        });
+      // Verifica quantas mensagens existem antes de fazer a busca
+      const status = await imapClient.status(targetFolder, { messages: true });
+      
+      if (status.messages > 0) {
+        for await (let message of imapClient.fetch('1:*', { envelope: true })) {
+          messages.push({
+            uid: message.uid,
+            seq: message.seq,
+            from: message.envelope.from ? message.envelope.from[0].address : '',
+            to: message.envelope.to ? message.envelope.to[0].address : '',
+            subject: message.envelope.subject || '(sem assunto)',
+            date: message.envelope.date
+          });
+        }
       }
     } finally {
       lock.release();
