@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import api from '../services/api';
 
+// Formata datas; evita exibir 1970 quando a mensagem não tem data
+const formatDate = (date) => (date ? new Date(date).toLocaleString() : '-');
+
 export default function MailView() {
   // Estado da Sessão do Cliente de E-mail
   const [session, setSession] = useState(null); // { account, password }
@@ -14,6 +17,7 @@ export default function MailView() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedMail, setSelectedMail] = useState(null); // E-mail aberto no Modal
+  const [loadingBody, setLoadingBody] = useState(false);
 
   // Estado de Composição / Resposta
   const [showComposeModal, setShowComposeModal] = useState(false);
@@ -57,35 +61,65 @@ export default function MailView() {
     if (!session) return;
     setLoading(true);
     setFolder(targetFolder);
+    setMessages([]);
+    setSelectedMail(null);
+
     try {
       const res = await api.get('/mail', {
         params: { account: session.account, password: session.password, folder: targetFolder }
       });
       setMessages(res.data.messages || []);
     } catch (err) {
-      alert('Erro ao carregar mensagens da pasta.');
+      alert(err.response?.data?.error || 'Erro ao carregar mensagens da pasta.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 4. Iniciar Resposta Direta a um E-mail
+  // 4. Abrir um E-mail (a lista traz só os cabeçalhos; o corpo é buscado pelo UID)
+  const openMail = async (mail) => {
+    setSelectedMail({ ...mail, text: '' });
+    setLoadingBody(true);
+
+    try {
+      const res = await api.get('/mail/message', {
+        params: { account: session.account, password: session.password, folder, uid: mail.uid }
+      });
+      setSelectedMail(res.data.message);
+    } catch (err) {
+      setSelectedMail({ ...mail, text: '(Erro ao carregar o corpo da mensagem.)' });
+    } finally {
+      setLoadingBody(false);
+    }
+  };
+
+  // 5. Iniciar Resposta Direta a um E-mail
   const handleReply = (mail) => {
-    setTo(mail.from);
+    // Na pasta Sent, responder significa escrever de novo ao destinatário
+    const replyTo = folder === 'Sent'
+      ? (mail.toAddress || '').split(',')[0].trim()
+      : (mail.fromAddress || '').split(',')[0].trim();
+
+    const quoted = (mail.text || '')
+      .split('\n')
+      .map((line) => `> ${line}`)
+      .join('\n');
+
+    setTo(replyTo);
     setSubject(mail.subject.startsWith('Re:') ? mail.subject : `Re: ${mail.subject}`);
-    setBodyText(`\n\n--- Em ${new Date(mail.date).toLocaleString()}, ${mail.from} escreveu:\n> ${mail.text}`);
+    setBodyText(`\n\n--- Em ${formatDate(mail.date)}, ${mail.from} escreveu:\n${quoted}`);
     setSelectedMail(null);
     setShowComposeModal(true);
   };
 
-  // 5. Enviar Mensagem via SMTP
+  // 6. Enviar Mensagem via SMTP
   const handleSendEmail = async (e) => {
     e.preventDefault();
     setSending(true);
     setStatusMessage('');
 
     try {
-      await api.post('/mail/send', {
+      const res = await api.post('/mail/send', {
         account: session.account,
         password: session.password,
         to,
@@ -93,7 +127,8 @@ export default function MailView() {
         bodyText
       });
 
-      setStatusMessage('E-mail enviado com sucesso via SMTP!');
+      // Se o e-mail saiu mas a cópia no Sent falhou, mostra o aviso
+      setStatusMessage(res.data.warning || 'E-mail enviado com sucesso via SMTP!');
       setTimeout(() => {
         setShowComposeModal(false);
         setStatusMessage('');
@@ -101,9 +136,9 @@ export default function MailView() {
         setSubject('');
         setBodyText('');
         if (folder === 'Sent') loadFolder('Sent');
-      }, 1200);
+      }, res.data.warning ? 3500 : 1200);
     } catch (err) {
-      alert('Falha ao enviar e-mail via Postfix.');
+      alert(err.response?.data?.error || 'Falha ao enviar e-mail via Postfix.');
     } finally {
       setSending(false);
     }
@@ -236,36 +271,41 @@ export default function MailView() {
           ) : messages.length === 0 ? (
             <div className="p-10 text-center text-slate-400 text-xs">Nenhum e-mail encontrado na pasta {folder}.</div>
           ) : (
-            <div className="overflow-x-auto flex-1">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-900/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
-                  <tr>
-                    <th className="p-3">De / Para</th>
-                    <th className="p-3">Assunto</th>
-                    <th className="p-3 text-right">Data</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700/50">
-                  {messages.map((mail, idx) => (
-                    <tr
-                      key={idx}
-                      onClick={() => setSelectedMail(mail)}
-                      className="hover:bg-indigo-500/10 cursor-pointer transition"
-                    >
-                      <td className="p-3 font-semibold text-slate-200 truncate max-w-[180px]">
-                        {folder === 'INBOX' ? mail.from : mail.to}
-                      </td>
-                      <td className="p-3 font-medium text-slate-100 truncate max-w-[300px]">
-                        {mail.subject}
-                      </td>
-                      <td className="p-3 text-right text-slate-400 text-[11px] whitespace-nowrap">
-                        {new Date(mail.date).toLocaleString()}
-                      </td>
+            <>
+              <div className="px-4 py-2 text-[11px] text-slate-400 border-b border-slate-700/50">
+                {messages.length} mensagem(ns) em {folder}
+              </div>
+              <div className="overflow-x-auto flex-1">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-slate-900/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
+                    <tr>
+                      <th className="p-3">De / Para</th>
+                      <th className="p-3">Assunto</th>
+                      <th className="p-3 text-right">Data</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {messages.map((mail) => (
+                      <tr
+                        key={mail.uid}
+                        onClick={() => openMail(mail)}
+                        className="hover:bg-indigo-500/10 cursor-pointer transition"
+                      >
+                        <td className="p-3 font-semibold text-slate-200 truncate max-w-[180px]">
+                          {folder === 'INBOX' ? mail.from : mail.to}
+                        </td>
+                        <td className="p-3 font-medium text-slate-100 truncate max-w-[300px]">
+                          {mail.subject}
+                        </td>
+                        <td className="p-3 text-right text-slate-400 text-[11px] whitespace-nowrap">
+                          {formatDate(mail.date)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -278,7 +318,7 @@ export default function MailView() {
               <div>
                 <h3 className="text-base font-bold text-slate-100">{selectedMail.subject}</h3>
                 <p className="text-xs text-indigo-400 mt-1">De: {selectedMail.from}</p>
-                <p className="text-[11px] text-slate-400">Para: {selectedMail.to} | {new Date(selectedMail.date).toLocaleString()}</p>
+                <p className="text-[11px] text-slate-400">Para: {selectedMail.to} | {formatDate(selectedMail.date)}</p>
               </div>
               <button
                 onClick={() => setSelectedMail(null)}
@@ -290,13 +330,16 @@ export default function MailView() {
 
             {/* Corpo do E-mail */}
             <div className="bg-slate-900 p-4 rounded-lg border border-slate-700/60 max-h-64 overflow-y-auto text-xs font-mono text-slate-200 whitespace-pre-wrap">
-              {selectedMail.text || '(Mensagem sem corpo de texto)'}
+              {loadingBody
+                ? 'A carregar mensagem...'
+                : selectedMail.text || '(Mensagem sem corpo de texto)'}
             </div>
 
             <div className="flex justify-between items-center pt-2">
               <button
                 onClick={() => handleReply(selectedMail)}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded transition"
+                disabled={loadingBody}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded transition disabled:opacity-50"
               >
                 ↩ Responder Mensagem
               </button>
