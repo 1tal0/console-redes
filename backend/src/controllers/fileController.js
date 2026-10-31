@@ -1,5 +1,6 @@
-const { listFiles, uploadFile, checkHttpIntegrity, checkExistingFileIntegrity } = require('../services/ftpService');
+const { listFiles, uploadFile, downloadFileStream, checkExistingFileIntegrity } = require('../services/ftpService');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const getFileList = async (req, res) => {
   try {
@@ -20,23 +21,28 @@ const handleUpload = async (req, res) => {
   const originalName = req.file.originalname;
 
   try {
-    // 1. Upload via FTP
+    // Hash local antes do envio
+    const localBuffer = fs.readFileSync(localFilePath);
+    const localSha256 = crypto.createHash('sha256').update(localBuffer).digest('hex');
+
+    // Transferência via FTP
     await uploadFile(localFilePath, originalName);
 
-    // 2. Testar integração automática HTTP e comparar SHA-256
-    const integrity = await checkHttpIntegrity(originalName, localFilePath);
-
-    // 3. Remover arquivo temporário local do backend
+    // Remover temporário local do Multer
     if (fs.existsSync(localFilePath)) {
       fs.unlinkSync(localFilePath);
     }
 
+    // Validação automática de publicação HTTP Apache
+    const integrity = await checkExistingFileIntegrity(originalName);
+
     return res.json({
-      message: 'Arquivo enviado com sucesso via FTP!',
+      message: 'Arquivo transferido com sucesso ao vsftpd!',
       filename: originalName,
       size: req.file.size,
-      sha256: integrity.httpHash,
-      integrity
+      sha256: integrity.sha256,
+      integrityMatch: localSha256 === integrity.sha256,
+      httpUrl: integrity.httpUrl
     });
   } catch (error) {
     if (fs.existsSync(localFilePath)) {
@@ -47,21 +53,32 @@ const handleUpload = async (req, res) => {
   }
 };
 
-// Nova controller para checar integridade de um arquivo existente
-const checkIntegrity = async (req, res) => {
+const handleDownload = async (req, res) => {
   const { filename } = req.params;
-  
   if (!filename) {
     return res.status(400).json({ error: 'Nome do arquivo é obrigatório.' });
   }
 
   try {
-    const result = await checkExistingFileIntegrity(filename);
-    return res.json(result);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    await downloadFileStream(filename, res);
   } catch (error) {
-    console.error('Erro ao verificar integridade:', error);
-    return res.status(500).json({ error: 'Falha ao verificar integridade do arquivo via HTTP.' });
+    console.error('Erro ao baixar arquivo via FTP:', error);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Falha ao realizar download via FTP.' });
+    }
   }
 };
 
-module.exports = { getFileList, handleUpload, checkIntegrity };
+const checkIntegrity = async (req, res) => {
+  const { filename } = req.params;
+  try {
+    const result = await checkExistingFileIntegrity(filename);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ error: 'Falha ao verificar publicação HTTP/Integridade.' });
+  }
+};
+
+module.exports = { getFileList, handleUpload, handleDownload, checkIntegrity };

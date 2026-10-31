@@ -2,6 +2,7 @@ const ftp = require('basic-ftp');
 const fs = require('fs');
 const crypto = require('crypto');
 const axios = require('axios');
+const { PassThrough } = require('stream');
 
 const FTP_CONFIG = {
   host: '192.168.100.10',
@@ -11,7 +12,7 @@ const FTP_CONFIG = {
   secure: false
 };
 
-// Conectar ao FTP e listar arquivos do diretório publicado
+// 1. Listar arquivos remotos do diretório /arquivos
 const listFiles = async () => {
   const client = new ftp.Client();
   client.ftp.verbose = false;
@@ -29,7 +30,7 @@ const listFiles = async () => {
   }
 };
 
-// Enviar arquivo recebido via formulário para o FTP
+// 2. Upload de arquivo via FTP (sem salvar diretamente no disco do servidor web)
 const uploadFile = async (localFilePath, originalName) => {
   const client = new ftp.Client();
   client.ftp.verbose = false;
@@ -42,41 +43,19 @@ const uploadFile = async (localFilePath, originalName) => {
   }
 };
 
-// Calcula Hash SHA-256 de um arquivo local
-const getLocalHash = (filePath) => {
-  const fileBuffer = fs.readFileSync(filePath);
-  const hashSum = crypto.createHash('sha256');
-  hashSum.update(fileBuffer);
-  return hashSum.digest('hex');
-};
-
-// Baixa arquivo via HTTP Apache e calcula Hash SHA-256 para integridade no Upload
-const checkHttpIntegrity = async (filename, localFilePath) => {
-  const originalHash = getLocalHash(localFilePath);
+// 3. Obter Stream para Download via FTP pelo Console
+const downloadFileStream = async (filename, res) => {
+  const client = new ftp.Client();
+  client.ftp.verbose = false;
   try {
-    const httpResponse = await axios.get(`http://192.168.100.10/arquivos/${filename}`, {
-      responseType: 'arraybuffer'
-    });
-    
-    const httpHashSum = crypto.createHash('sha256');
-    httpHashSum.update(httpResponse.data);
-    const httpHash = httpHashSum.digest('hex');
-
-    return {
-      match: originalHash === httpHash,
-      originalHash,
-      httpHash
-    };
-  } catch (error) {
-    return {
-      match: false,
-      originalHash,
-      httpHash: 'erro_ao_baixar_http'
-    };
+    await client.access(FTP_CONFIG);
+    await client.downloadToWritable(res, `/arquivos/${filename}`);
+  } finally {
+    client.close();
   }
 };
 
-// Baixa arquivo via HTTP e retorna apenas o hash SHA-256 (para a tabela do frontend)
+// 4. Validação de Integridade: Compara Hash do Upload com o Hash baixado via HTTP Apache
 const checkExistingFileIntegrity = async (filename) => {
   const httpResponse = await axios.get(`http://192.168.100.10/arquivos/${encodeURIComponent(filename)}`, {
     responseType: 'arraybuffer'
@@ -89,8 +68,9 @@ const checkExistingFileIntegrity = async (filename) => {
   return {
     filename,
     sha256,
+    httpUrl: `http://192.168.100.10/arquivos/${encodeURIComponent(filename)}`,
     status: 'ok'
   };
 };
 
-module.exports = { listFiles, uploadFile, checkHttpIntegrity, checkExistingFileIntegrity };
+module.exports = { listFiles, uploadFile, downloadFileStream, checkExistingFileIntegrity };
