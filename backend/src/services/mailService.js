@@ -1,22 +1,29 @@
 const nodemailer = require('nodemailer');
 const { ImapFlow } = require('imapflow');
 
-const createSmtpTransporter = (user, pass) => {
+// Extrai o nome de utilizador do Linux (ex: "aluno@empresa.test" -> "aluno")
+const getSystemUsername = (account) => {
+  return account.includes('@') ? account.split('@')[0] : account;
+};
+
+// Configuração SMTP local do Postfix
+const createSmtpTransporter = (account, pass) => {
   return nodemailer.createTransport({
     host: '192.168.100.10',
     port: 25,
     secure: false,
-    auth: { user, pass },
+    auth: { user: getSystemUsername(account), pass },
     tls: { rejectUnauthorized: false }
   });
 };
 
-const createImapClient = (user, pass) => {
+// Configuração cliente IMAP do Dovecot (utiliza a conta PAM local)
+const createImapClient = (account, pass) => {
   return new ImapFlow({
     host: '192.168.100.10',
     port: 143,
     secure: false,
-    auth: { user, pass },
+    auth: { user: getSystemUsername(account), pass },
     tls: { rejectUnauthorized: false },
     logger: false
   });
@@ -46,15 +53,10 @@ const sendEmail = async (account, password, to, subject, bodyText) => {
   try {
     await imapClient.connect();
 
-    // Garante que a pasta Sent existe ou cria se necessário
     const mailboxes = await imapClient.list();
-    let targetFolder = mailboxes.find(m => m.name.toLowerCase() === 'sent' || m.path.toLowerCase() === 'sent')?.path || 'Sent';
-
-    try {
-      await imapClient.mailboxCreate(targetFolder);
-    } catch (e) {
-      // Pasta já existe
-    }
+    let targetFolder = mailboxes.find(
+      m => m.name.toLowerCase() === 'sent' || m.path.toLowerCase() === 'sent'
+    )?.path || 'Sent';
 
     const rawMessage = Buffer.from(
       `From: ${user}\r\n` +
@@ -85,25 +87,24 @@ const sendEmail = async (account, password, to, subject, bodyText) => {
 
 // 2. Listar mensagens de uma pasta (INBOX ou Sent) via IMAP
 const listEmails = async (account, password, folder = 'INBOX') => {
-  const user = account;
   const pass = password;
-  const imapClient = createImapClient(user, pass);
+  const imapClient = createImapClient(account, pass);
 
   try {
     await imapClient.connect();
 
-    // Normaliza o nome da caixa (ex: Sent vs INBOX)
     let targetFolder = folder;
     if (folder.toLowerCase() === 'sent') {
       const mailboxes = await imapClient.list();
-      targetFolder = mailboxes.find(m => m.name.toLowerCase() === 'sent' || m.path.toLowerCase() === 'sent')?.path || 'Sent';
+      targetFolder = mailboxes.find(
+        m => m.name.toLowerCase() === 'sent' || m.path.toLowerCase() === 'sent'
+      )?.path || 'Sent';
     }
 
     const lock = await imapClient.getMailboxLock(targetFolder);
     const messages = [];
 
     try {
-      // Verifica quantas mensagens existem antes de fazer a busca
       const status = await imapClient.status(targetFolder, { messages: true });
       
       if (status.messages > 0) {
