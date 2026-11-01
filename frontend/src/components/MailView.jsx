@@ -150,9 +150,9 @@ export default function MailView() {
       <div className="max-w-md mx-auto my-10 bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-xl space-y-6">
         <div className="text-center space-y-1">
           <div className="inline-flex p-3 bg-indigo-500/10 rounded-full text-indigo-400 mb-2">
-            ✉
+            <Mail />
           </div>
-          <h2 className="text-xl font-bold text-slate-100">Cliente de Correio (Thunderbird N2)</h2>
+          <h2 className="text-xl font-bold text-slate-100">Cliente de Correio</h2>
           <p className="text-xs text-slate-400">Insira as credenciais Linux (PAM) para aceder à conta</p>
         </div>
 
@@ -192,13 +192,9 @@ export default function MailView() {
             disabled={authenticating}
             className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded text-xs transition disabled:opacity-50"
           >
-            {authenticating ? 'A autenticar no Dovecot...' : 'Aceder à Conta'}
+            {authenticating ? 'A autenticar no Dovecot...' : 'Acessar'}
           </button>
         </form>
-
-        <div className="text-[11px] text-slate-500 text-center border-t border-slate-700/50 pt-4">
-          Contas predefinidas: <code className="text-slate-400">aluno (aluno)</code> | <code className="text-slate-400">suporte (suporte)</code>
-        </div>
       </div>
     );
   }
@@ -218,13 +214,13 @@ export default function MailView() {
             }}
             className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded flex items-center gap-1.5 transition"
           >
-            ✏ Escrever Mensagem
+            <Send /> Escrever Mensagem
           </button>
           <button
             onClick={() => loadFolder(folder)}
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded transition"
           >
-            🔄 Sincronizar
+            <CloudSync /> Sincronizar
           </button>
         </div>
 
@@ -252,7 +248,7 @@ export default function MailView() {
               folder === 'INBOX' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/40'
             }`}
           >
-            <span>📥 Entrada (INBOX)</span>
+            <span><Mails /> Entrada (INBOX)</span>
           </button>
           <button
             onClick={() => loadFolder('Sent')}
@@ -260,7 +256,7 @@ export default function MailView() {
               folder === 'Sent' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/40'
             }`}
           >
-            <span>📤 Enviados (Sent)</span>
+            <span><SendHorizontal /> Enviados (Sent)</span>
           </button>
         </div>
 
@@ -324,7 +320,7 @@ export default function MailView() {
                 onClick={() => setSelectedMail(null)}
                 className="text-slate-400 hover:text-slate-200 text-sm font-bold"
               >
-                ✕
+                <X />
               </button>
             </div>
 
@@ -341,7 +337,7 @@ export default function MailView() {
                 disabled={loadingBody}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded transition disabled:opacity-50"
               >
-                ↩ Responder Mensagem
+                <Reply /> Responder Mensagem
               </button>
 
               <button
@@ -361,7 +357,7 @@ export default function MailView() {
           <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 max-w-lg w-full space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-700 pb-3">
               <h3 className="text-sm font-bold text-slate-100">Nova Mensagem de Correio</h3>
-              <button onClick={() => setShowComposeModal(false)} className="text-slate-400 hover:text-slate-200 text-sm font-bold">✕</button>
+              <button onClick={() => setShowComposeModal(false)} className="text-slate-400 hover:text-slate-200 text-sm font-bold"><X /></button>
             </div>
 
             {statusMessage && (
