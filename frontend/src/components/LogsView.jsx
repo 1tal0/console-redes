@@ -29,13 +29,13 @@ export default function LogsView() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Logs e Auditoria do Servidor</h2>
-          <p className="text-xs text-slate-400">Visualização em tempo real das últimas 50 entradas dos serviços Linux</p>
+          <h2 className="text-lg md:text-xl font-bold text-slate-100 break-words">Logs e Auditoria do Servidor</h2>
+          <p className="text-[11px] md:text-xs text-slate-400">Visualização em tempo real das últimas 50 entradas dos serviços Linux</p>
         </div>
 
         <button
           onClick={() => fetchLogs(logType)}
-          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded transition"
+          className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-11 md:min-h-0 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 md:py-1.5 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
         >
           🔄 Atualizar Logs
         </button>
@@ -53,7 +53,7 @@ export default function LogsView() {
           <button
             key={tab.id}
             onClick={() => setLogType(tab.id)}
-            className={`px-3 py-1.5 rounded text-xs font-semibold transition ${
+            className={`px-3 py-2 min-h-11 md:min-h-0 rounded text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
               logType === tab.id
                 ? 'bg-indigo-600 text-white'
                 : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/60'
@@ -71,8 +71,8 @@ export default function LogsView() {
       )}
 
       {/* Exibição em Estilo Terminal */}
-      <div className="bg-slate-950 rounded-xl border border-slate-800 p-4 font-mono text-xs overflow-hidden shadow-2xl">
-        <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-800 text-[10px] text-slate-500">
+      <div className="bg-slate-950 rounded-xl border border-slate-800 p-3 md:p-4 font-mono text-xs overflow-hidden shadow-2xl">
+        <div className="flex flex-wrap justify-between items-center gap-2 pb-2 mb-2 border-b border-slate-800 text-[11px] md:text-[10px] text-slate-500">
           <span>CONSOLE LOG STREAM - {logType.toUpperCase()}</span>
           <span>{logs.length} Linhas</span>
         </div>
@@ -82,9 +82,9 @@ export default function LogsView() {
         ) : logs.length === 0 ? (
           <div className="p-8 text-center text-slate-500">Nenhum registo encontrado para a categoria selecionada.</div>
         ) : (
-          <div className="max-h-[500px] overflow-y-auto space-y-1 text-slate-300">
+          <div className="max-h-[500px] overflow-y-auto overflow-x-auto space-y-1 text-slate-300">
             {logs.map((line, idx) => (
-              <div key={idx} className="hover:bg-slate-900/80 px-2 py-0.5 rounded break-all whitespace-pre-wrap">
+              <div key={idx} className="hover:bg-slate-900/80 px-2 py-0.5 rounded break-words whitespace-pre-wrap">
                 <span className="text-slate-600 mr-2">[{idx + 1}]</span>
                 <span className={
                   line.includes('FAILED') || line.includes('error') || line.includes('Error')

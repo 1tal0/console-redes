@@ -29,28 +29,28 @@ export default function DashboardView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-slate-100">Observabilidade & Métricas do Sistema</h2>
-        <span className="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h2 className="text-lg md:text-xl font-bold text-slate-100 break-words">Observabilidade & Métricas do Sistema</h2>
+        <span className="self-start sm:self-auto text-[11px] md:text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700 whitespace-nowrap">
           Última atualização: {new Date(metrics.timestamp).toLocaleTimeString()}
         </span>
       </div>
 
       {/* Cards de Recursos Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* CPU */}
-        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+        <div className="bg-slate-800 p-4 md:p-5 rounded-xl border border-slate-700 min-w-0">
           <p className="text-xs font-semibold uppercase text-slate-400">Carga da CPU</p>
-          <p className="text-3xl font-extrabold text-slate-100 mt-2">{metrics.cpu.usagePercent}%</p>
+          <p className="text-2xl md:text-3xl font-extrabold text-slate-100 mt-2">{metrics.cpu.usagePercent}%</p>
           <div className="w-full bg-slate-700 h-2 rounded-full mt-3 overflow-hidden">
             <div className="bg-indigo-500 h-full" style={{ width: `${metrics.cpu.usagePercent}%` }}></div>
           </div>
         </div>
 
         {/* RAM */}
-        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+        <div className="bg-slate-800 p-4 md:p-5 rounded-xl border border-slate-700 min-w-0">
           <p className="text-xs font-semibold uppercase text-slate-400">Uso de Memória RAM</p>
-          <p className="text-3xl font-extrabold text-slate-100 mt-2">{metrics.memory.usagePercent}%</p>
+          <p className="text-2xl md:text-3xl font-extrabold text-slate-100 mt-2">{metrics.memory.usagePercent}%</p>
           <p className="text-xs text-slate-400 mt-1">{metrics.memory.usedMb} MB / {metrics.memory.totalMb} MB</p>
           <div className="w-full bg-slate-700 h-2 rounded-full mt-2 overflow-hidden">
             <div className="bg-blue-500 h-full" style={{ width: `${metrics.memory.usagePercent}%` }}></div>
@@ -58,9 +58,9 @@ export default function DashboardView() {
         </div>
 
         {/* DISCO */}
-        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+        <div className="bg-slate-800 p-4 md:p-5 rounded-xl border border-slate-700 min-w-0">
           <p className="text-xs font-semibold uppercase text-slate-400">Uso do Disco (/)</p>
-          <p className="text-3xl font-extrabold text-slate-100 mt-2">{metrics.disk.usagePercent}%</p>
+          <p className="text-2xl md:text-3xl font-extrabold text-slate-100 mt-2">{metrics.disk.usagePercent}%</p>
           <p className="text-xs text-slate-400 mt-1">{metrics.disk.usedGb} GB / {metrics.disk.totalGb} GB</p>
           <div className="w-full bg-slate-700 h-2 rounded-full mt-2 overflow-hidden">
             <div className="bg-emerald-500 h-full" style={{ width: `${metrics.disk.usagePercent}%` }}></div>
@@ -68,9 +68,9 @@ export default function DashboardView() {
         </div>
 
         {/* HTTP LATÊNCIA */}
-        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+        <div className="bg-slate-800 p-4 md:p-5 rounded-xl border border-slate-700 min-w-0">
           <p className="text-xs font-semibold uppercase text-slate-400">Latência HTTP (Apache)</p>
-          <p className="text-3xl font-extrabold text-emerald-400 mt-2">{metrics.httpTest.latencyMs} ms</p>
+          <p className="text-2xl md:text-3xl font-extrabold text-emerald-400 mt-2">{metrics.httpTest.latencyMs} ms</p>
           <p className="text-xs text-slate-400 mt-1">Status Code: HTTP {metrics.httpTest.code}</p>
           <div className="w-full bg-slate-700 h-2 rounded-full mt-2 overflow-hidden">
             <div className="bg-emerald-400 h-full w-full"></div>
@@ -79,18 +79,18 @@ export default function DashboardView() {
       </div>
 
       {/* Tabela de Serviços da N1 */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
-        <h3 className="text-md font-bold text-slate-200 mb-4">Estado dos 5 Serviços da Infraestrutura</h3>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="bg-slate-800 rounded-xl border border-slate-700 p-4 md:p-5">
+        <h3 className="text-sm md:text-base font-bold text-slate-200 mb-4">Estado dos 5 Serviços da Infraestrutura</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           {Object.entries(metrics.services).map(([serviceName, info]) => (
-            <div key={serviceName} className="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 flex flex-col items-center">
-              <span className="text-xs font-mono text-slate-400 uppercase mb-2">{serviceName}</span>
+            <div key={serviceName} className="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 flex flex-col items-center min-w-0 text-center">
+              <span className="text-xs font-mono text-slate-400 uppercase mb-2 break-all">{serviceName}</span>
               <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
                 info.state === 'ativo' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
               }`}>
                 ● {info.state.toUpperCase()}
               </span>
-              <span className="text-[10px] text-slate-500 mt-1 font-mono">{info.subState}</span>
+              <span className="text-[11px] md:text-[10px] text-slate-500 mt-1 font-mono break-all">{info.subState}</span>
             </div>
           ))}
         </div>

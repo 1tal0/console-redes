@@ -28,8 +28,8 @@ export default function LoginView({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
-      <div className="bg-slate-800 p-8 rounded-xl shadow-2xl border border-slate-700 w-full max-w-md">
+    <div className="min-h-dvh flex items-center justify-center bg-slate-900 p-4">
+      <div className="bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl border border-slate-700 w-full max-w-md">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-slate-100">Servidor Debian</h1>
           <p className="text-sm text-slate-400 mt-1">Painel de Gerenciamento de Infraestrutura</p>
@@ -48,7 +48,7 @@ export default function LoginView({ onLoginSuccess }) {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500"
+              className="w-full min-h-11 bg-slate-900 border border-slate-700 rounded p-2.5 text-base sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
               required
             />
           </div>
@@ -59,7 +59,7 @@ export default function LoginView({ onLoginSuccess }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500"
+              className="w-full min-h-11 bg-slate-900 border border-slate-700 rounded p-2.5 text-base sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
               required
             />
           </div>
@@ -67,7 +67,7 @@ export default function LoginView({ onLoginSuccess }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded transition duration-200 disabled:opacity-50"
+            className="w-full min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded transition duration-200 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             {loading ? 'Autenticando...' : 'Entrar no Sistema'}
           </button>
