@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../services/api';
+import { Mail, Mails, Send, SendHorizontal, CloudSync, Reply, X } from 'lucide-react';
 
 // Formata datas; evita exibir 1970 quando a mensagem não tem data
 const formatDate = (date) => (date ? new Date(date).toLocaleString() : '-');
