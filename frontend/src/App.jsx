@@ -33,10 +33,17 @@ const TABS_BY_ROLE = {
   ]
 };
 
+const PART2_TABS = [
+  { id: 'audit', label: '🛡 Trilha de Auditoria' },
+  { id: 'services', label: '⚙️ Gestão de Serviços (Start/Stop)' },
+  { id: 'enterprise', label: '🏢 Novos Serviços Empresariais' }
+];
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [menuOpen, setMenuOpen] = useState(false); // Menu recolhível no celular
+  const [part2Notice, setPart2Notice] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('console_n2_user');
@@ -69,6 +76,12 @@ export default function App() {
     if (!allowedTabIds.includes(id)) return;
     setActiveTab(id);
     setMenuOpen(false);
+  };
+
+  const showPart2Notice = () => {
+    setPart2Notice(true);
+    window.clearTimeout(showPart2Notice._t);
+    showPart2Notice._t = window.setTimeout(() => setPart2Notice(false), 2800);
   };
 
   if (!user) {
@@ -135,6 +148,19 @@ export default function App() {
                 </button>
               </li>
             ))}
+            {PART2_TABS.map((tab) => (
+              <li key={tab.id}>
+                <button
+                  type="button"
+                  onClick={showPart2Notice}
+                  className="w-full text-left rounded-lg px-3 py-3 text-sm font-semibold border-l-4 border-transparent text-slate-500 opacity-60 cursor-not-allowed"
+                  title="Em breve - Parte 2"
+                >
+                  {tab.label}
+                  <span className="ml-2 text-[10px] uppercase tracking-wide text-amber-400/80">[Em breve - Parte 2]</span>
+                </button>
+              </li>
+            ))}
           </ul>
         </nav>
       )}
@@ -156,8 +182,26 @@ export default function App() {
               {tab.label}
             </button>
           ))}
+          {PART2_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={showPart2Notice}
+              title="Em breve - Parte 2"
+              className="whitespace-nowrap py-3 px-4 text-xs font-semibold uppercase tracking-wider border-b-2 border-transparent text-slate-500 opacity-60 cursor-not-allowed"
+            >
+              {tab.label}
+              <span className="ml-1 normal-case font-bold text-[9px] text-amber-400/80">[Em breve - Parte 2]</span>
+            </button>
+          ))}
         </div>
       </nav>
+
+      {part2Notice && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border border-amber-500/40 bg-slate-800 px-4 py-3 text-xs text-amber-200 shadow-xl">
+          Funcionalidade pertencente à evolução da Parte 2.
+        </div>
+      )}
 
       {/* Conteúdo Principal */}
       <main className="flex-1 p-3 md:p-6 max-w-7xl w-full mx-auto">

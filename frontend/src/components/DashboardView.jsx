@@ -285,8 +285,11 @@ export default function DashboardView() {
       </div>
 
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-4 md:p-5">
-        <h3 className="text-sm md:text-base font-bold text-slate-200 mb-4">Estado dos 5 Serviços da Infraestrutura</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h3 className="text-sm md:text-base font-bold text-slate-200">Estado dos 5 Serviços da Infraestrutura</h3>
+          <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border border-amber-500/40 text-amber-300 bg-amber-500/10">Ações = Parte 2</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {Object.entries(metrics.services).map(([serviceName, info]) => (
             <div key={serviceName} className="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 flex flex-col items-center min-w-0 text-center">
               <span className="text-xs font-mono text-slate-400 uppercase mb-2 break-all">{serviceName}</span>
@@ -296,6 +299,22 @@ export default function DashboardView() {
                 ● {info.state.toUpperCase()}
               </span>
               <span className="text-[11px] md:text-[10px] text-slate-500 mt-1 font-mono break-all">{info.subState}</span>
+              <div className="mt-3 w-full space-y-1 opacity-60">
+                <p className="text-[9px] uppercase tracking-wide text-amber-400/80">Ações · Parte 2</p>
+                <div className="flex flex-wrap justify-center gap-1">
+                  {['Iniciar', 'Parar', 'Reiniciar'].map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      disabled
+                      title="Parte 2"
+                      className="text-[10px] px-2 py-1 rounded border border-slate-600 text-slate-400 cursor-not-allowed"
+                    >
+                      {action}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           ))}
         </div>
