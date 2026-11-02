@@ -26,7 +26,11 @@ export default function UsersView() {
 
   const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
   const isAdmin = loggedUser?.role === 'admin';
-  const isCurrentUser = Boolean(editingUser && Number(editingUser.id) === Number(loggedUser?.id));
+  const isCurrentUser = Boolean(
+    editingUser &&
+    loggedUser &&
+    (Number(editingUser.id) === Number(loggedUser.id) || editingUser.username === loggedUser.username)
+  );
 
   const fetchUsers = async () => {
     try {
@@ -253,10 +257,15 @@ export default function UsersView() {
                 <label className="block text-[11px] text-slate-400 uppercase mb-1">Perfil</label>
                 <select
                   value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className="w-full min-h-11 bg-slate-900 border border-slate-700 rounded p-2 text-base sm:text-xs text-slate-100 focus:outline-none focus:border-indigo-500 disabled:opacity-60"
+                  onChange={(e) => {
+                    if (isCurrentUser) return;
+                    setForm({ ...form, role: e.target.value });
+                  }}
+                  className="w-full min-h-11 bg-slate-900 border border-slate-700 rounded p-2 text-base sm:text-xs text-slate-100 focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   required
                   disabled={isCurrentUser}
+                  aria-disabled={isCurrentUser}
+                  title={isCurrentUser ? 'Você não pode alterar o seu próprio papel.' : undefined}
                 >
                   <option value="admin">admin</option>
                   <option value="operador">operador</option>
