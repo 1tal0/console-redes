@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { pushToast } from '../services/notifyBus';
 
 const SessionOperationsContext = createContext(null);
 
@@ -21,13 +22,23 @@ export function SessionOperationsProvider({ children }) {
 
   const finishOperation = useCallback((id, { status, detalhe }) => {
     if (!id) return;
-    setOperations((prev) =>
-      prev.map((op) =>
+    setOperations((prev) => {
+      const next = prev.map((op) =>
         op.id === id
           ? { ...op, status, detalhe: detalhe != null ? detalhe : op.detalhe }
           : op
-      )
-    );
+      );
+      const current = next.find((op) => op.id === id);
+      if (current) {
+        const text = current.detalhe || current.operacao;
+        if (status === 'concluido') {
+          pushToast({ type: 'success', message: `${current.operacao}: ${text}` });
+        } else if (status === 'falha') {
+          pushToast({ type: 'error', message: `${current.operacao}: ${text}` });
+        }
+      }
+      return next;
+    });
   }, []);
 
   const value = useMemo(

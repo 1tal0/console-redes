@@ -8,6 +8,7 @@ import SshView from './components/SshView';
 import LogsView from './components/LogsView';
 import UsersView from './components/UsersView';
 import { SessionOperationsProvider } from './context/SessionOperationsContext';
+import { subscribeConnection } from './services/notifyBus';
 
 // Abas permitidas por perfil (RBAC visual)
 const TABS_BY_ROLE = {
@@ -44,6 +45,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [menuOpen, setMenuOpen] = useState(false); // Menu recolhível no celular
   const [part2Notice, setPart2Notice] = useState(false);
+  const [connection, setConnection] = useState('online');
 
   useEffect(() => {
     const savedUser = localStorage.getItem('console_n2_user');
@@ -52,6 +54,8 @@ export default function App() {
       setUser(JSON.parse(savedUser));
     }
   }, []);
+
+  useEffect(() => subscribeConnection(setConnection), []);
 
   const handleLogout = () => {
     localStorage.removeItem('console_n2_token');
@@ -84,13 +88,25 @@ export default function App() {
     showPart2Notice._t = window.setTimeout(() => setPart2Notice(false), 2800);
   };
 
+  const connectionBanner = connection === 'offline' ? (
+        <div className="bg-amber-500/15 border-b border-amber-500/40 text-amber-200 text-xs text-center px-3 py-2">
+          ⚠️ Conexão perdida com o servidor 192.168.100.10. Tentando reconectar...
+        </div>
+      ) : null;
+
   if (!user) {
-    return <LoginView onLoginSuccess={(u) => setUser(u)} />;
+    return (
+      <>
+        {connectionBanner}
+        <LoginView onLoginSuccess={(u) => setUser(u)} />
+      </>
+    );
   }
 
   return (
     <SessionOperationsProvider>
     <div className="min-h-dvh bg-slate-900 text-slate-100 flex flex-col">
+      {connectionBanner}
       {/* Header Superior */}
       <header className="bg-slate-800 border-b border-slate-700 px-3 py-3 md:px-6 md:py-4 flex justify-between items-center gap-3">
         <div className="flex items-center gap-2 min-w-0">
@@ -115,9 +131,18 @@ export default function App() {
         <div className="flex items-center gap-2 md:gap-4 shrink-0 min-w-0">
           <div className="text-right min-w-0 max-w-[40vw] sm:max-w-[16rem]">
             <p className="text-xs sm:text-sm font-semibold text-slate-200 truncate">{user.name}</p>
-            <span className="inline-block max-w-full truncate text-[11px] md:text-[10px] uppercase font-bold px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded">
-              Perfil: {user.role}
-            </span>
+            <div className="flex flex-wrap items-center justify-end gap-1">
+              <span className={`inline-block truncate text-[11px] md:text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
+                connection === 'offline'
+                  ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+              }`}>
+                {connection === 'offline' ? 'Desconectado' : 'Conectado'}
+              </span>
+              <span className="inline-block max-w-full truncate text-[11px] md:text-[10px] uppercase font-bold px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded">
+                Perfil: {user.role}
+              </span>
+            </div>
           </div>
 
           <button
