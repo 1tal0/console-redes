@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 
 export default function LoginView({ onLoginSuccess }) {
@@ -6,6 +6,14 @@ export default function LoginView({ onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const notice = sessionStorage.getItem('console_n2_session_notice');
+    if (notice) {
+      setError(notice);
+      sessionStorage.removeItem('console_n2_session_notice');
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

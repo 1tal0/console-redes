@@ -2,13 +2,14 @@ const ftp = require('basic-ftp');
 const path = require('path');
 const crypto = require('crypto');
 const axios = require('axios');
+const { ftp: ftpEnv } = require('../config/env');
 
 const FTP_CONFIG = {
-  host: '192.168.100.10',
-  port: 21,
-  user: 'ftpuser',
-  password: 'ftp',
-  secure: false
+  host: ftpEnv.host,
+  port: ftpEnv.port,
+  user: ftpEnv.user,
+  password: ftpEnv.password,
+  secure: ftpEnv.secure
 };
 
 const SAFE_FILENAME = /^[a-zA-Z0-9._-]+$/;

@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+const { port } = require('./config/env');
 
 // Garantir pasta temporária
 const uploadsDir = path.resolve(__dirname, '../uploads');
@@ -22,7 +22,7 @@ const logRoutes = require('./routes/logRoutes');
 const userRoutes = require('./routes/userRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = port;
 
 app.use(cors());
 app.use(express.json());

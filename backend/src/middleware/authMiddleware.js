@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
+const { jwtSecret } = require('../config/env');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret_key_console_n2_ifce';
+const JWT_SECRET = jwtSecret;
 
-// Verifica se a requisição possui um Token JWT válido
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -20,12 +20,11 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Restringe o acesso com base no Perfil do Utilizador
 const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        error: 'Permissão insuficiente. Operação não autorizada para este perfil.' 
+      return res.status(403).json({
+        error: 'Permissão insuficiente. Operação não autorizada para este perfil.'
       });
     }
     next();
