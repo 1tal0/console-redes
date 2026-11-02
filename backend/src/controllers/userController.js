@@ -83,6 +83,11 @@ const updateUser = (req, res) => {
       return res.status(404).json({ error: 'Utilizador não encontrado.' });
     }
 
+    // Impede que o utilizador autenticado altere o próprio papel
+    if (Number(req.user.id) === Number(user.id) && role !== user.role) {
+      return res.status(400).json({ error: 'Você não pode alterar o seu próprio papel de acesso.' });
+    }
+
     // Impede rebaixar o último administrador
     if (user.role === 'admin' && role !== 'admin') {
       db.get(

@@ -26,6 +26,7 @@ export default function UsersView() {
 
   const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
   const isAdmin = loggedUser?.role === 'admin';
+  const isCurrentUser = Boolean(editingUser && Number(editingUser.id) === Number(loggedUser?.id));
 
   const fetchUsers = async () => {
     try {
@@ -253,13 +254,17 @@ export default function UsersView() {
                 <select
                   value={form.role}
                   onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className="w-full min-h-11 bg-slate-900 border border-slate-700 rounded p-2 text-base sm:text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full min-h-11 bg-slate-900 border border-slate-700 rounded p-2 text-base sm:text-xs text-slate-100 focus:outline-none focus:border-indigo-500 disabled:opacity-60"
                   required
+                  disabled={isCurrentUser}
                 >
                   <option value="admin">admin</option>
                   <option value="operador">operador</option>
                   <option value="leitor">leitor</option>
                 </select>
+                {isCurrentUser && (
+                  <p className="text-[11px] text-amber-400 mt-1">Você não pode alterar o seu próprio papel.</p>
+                )}
               </div>
 
               <div>
