@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Menu,
-  X,
   LayoutDashboard,
   Folder,
   Mail,
@@ -154,49 +153,19 @@ export default function App() {
         )}
 
         <aside
-          className={`fixed md:static z-40 h-dvh shrink-0 bg-slate-800 border-r border-slate-700 flex flex-col transition-all duration-300 overflow-hidden ${
-            expanded ? 'w-64' : 'w-0 md:w-16'
-          }`}
+          className={`z-40 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden transition-all duration-300
+            md:sticky md:top-0 md:h-dvh md:shrink-0
+            max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:h-dvh
+            ${expanded ? 'w-64 max-md:translate-x-0' : 'w-16 max-md:w-64 max-md:-translate-x-full'}`}
         >
-          <div className="flex items-center gap-2 px-3 py-3 border-b border-slate-700 min-h-[3.5rem]">
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen((open) => !open)}
-              aria-label={expanded ? 'Recolher menu' : 'Expandir menu'}
-              aria-expanded={expanded}
-              className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            >
-              {expanded ? <X className="size-5" /> : <Menu className="size-5" />}
-            </button>
-            {expanded && (
+          <div className={`border-b border-slate-700 min-h-[3.5rem] flex items-center ${expanded ? 'px-4' : 'px-0 justify-center'}`}>
+            {expanded ? (
               <div className="min-w-0">
                 <p className="text-sm font-bold leading-tight">Console N2</p>
-                <p className="text-[10px] text-slate-400 font-mono truncate">192.168.100.10</p>
+                <p className="text-[10px] text-slate-400 font-mono truncate">Debian 192.168.100.10</p>
               </div>
-            )}
-          </div>
-
-          <div className={`border-b border-slate-700 ${expanded ? 'px-3 py-3' : 'px-2 py-2'}`}>
-            {expanded ? (
-              <>
-                <p className="text-xs font-semibold text-slate-200 truncate">{user.name}</p>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
-                    connection === 'offline'
-                      ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                      : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                  }`}>
-                    {connection === 'offline' ? 'Desconectado' : 'Conectado'}
-                  </span>
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded">
-                    {user.role}
-                  </span>
-                </div>
-              </>
             ) : (
-              <div className="hidden md:flex justify-center">
-                <span className={`size-2.5 rounded-full ${connection === 'offline' ? 'bg-red-400' : 'bg-emerald-400'}`} title={connection === 'offline' ? 'Desconectado' : 'Conectado'} />
-              </div>
+              <span className="hidden md:inline text-[10px] font-bold text-indigo-300">N2</span>
             )}
           </div>
 
@@ -212,11 +181,13 @@ export default function App() {
                       title={tab.label}
                       onClick={() => handleNavigate(tab.id)}
                       aria-current={active ? 'page' : undefined}
-                      className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                      className={`w-full flex items-center rounded-lg py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                        expanded ? 'gap-3 px-2.5' : 'justify-center px-0'
+                      } ${
                         active
                           ? 'bg-indigo-500/15 text-indigo-300'
                           : 'text-slate-300 hover:bg-slate-700/60'
-                      } ${expanded ? '' : 'md:justify-center'}`}
+                      }`}
                     >
                       <Icon className="size-4 shrink-0" />
                       {expanded && <span className="truncate text-left">{tab.label}</span>}
@@ -226,7 +197,7 @@ export default function App() {
               })}
             </ul>
 
-            <p className={`mt-4 mb-1 text-[10px] uppercase tracking-wide text-slate-500 ${expanded ? 'px-2' : 'hidden md:block text-center'}`}>
+            <p className={`mt-4 mb-1 text-[10px] uppercase tracking-wide text-slate-500 ${expanded ? 'px-2' : 'text-center'}`}>
               {expanded ? 'Parte 2' : 'P2'}
             </p>
             <ul className="space-y-1">
@@ -238,7 +209,9 @@ export default function App() {
                       type="button"
                       title={`${tab.label} · Em breve - Parte 2`}
                       onClick={showPart2Notice}
-                      className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-semibold text-slate-500 opacity-60 cursor-not-allowed ${expanded ? '' : 'md:justify-center'}`}
+                      className={`w-full flex items-center rounded-lg py-2.5 text-sm font-semibold text-slate-500 opacity-60 cursor-not-allowed ${
+                        expanded ? 'gap-3 px-2.5' : 'justify-center px-0'
+                      }`}
                     >
                       <Icon className="size-4 shrink-0" />
                       {expanded && (
@@ -253,43 +226,52 @@ export default function App() {
               })}
             </ul>
           </nav>
-
-          <div className="p-2 border-t border-slate-700">
-            <button
-              type="button"
-              onClick={handleLogout}
-              title="Sair"
-              className={`w-full inline-flex items-center gap-2 rounded-lg px-2.5 py-2.5 text-xs font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${expanded ? '' : 'md:justify-center'}`}
-            >
-              <LogOut className="size-4 shrink-0" />
-              {expanded && <span>Sair</span>}
-            </button>
-          </div>
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0 min-h-dvh">
           {connectionBanner}
 
-          <header className="bg-slate-800 border-b border-slate-700 px-3 py-3 md:px-6 flex items-center gap-3">
+          <header className="sticky top-0 z-20 bg-slate-800 border-b border-slate-700 px-3 py-3 md:px-6 flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsSidebarOpen((open) => !open)}
               aria-label={expanded ? 'Recolher menu' : 'Abrir menu'}
+              aria-expanded={expanded}
               className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
               <Menu className="size-5" />
             </button>
+
             <div className="min-w-0 flex-1">
               <h1 className="text-sm sm:text-base md:text-lg font-bold leading-tight break-words">Painel Administrativo - Servidor Debian</h1>
               <p className="text-[11px] text-slate-400 font-mono truncate">192.168.100.10</p>
             </div>
-            <span className={`hidden sm:inline-block text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
-              connection === 'offline'
-                ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-            }`}>
-              {connection === 'offline' ? 'Desconectado' : 'Conectado'}
-            </span>
+
+            <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">
+              <div className="text-right min-w-0 max-w-[42vw] sm:max-w-none">
+                <p className="text-xs sm:text-sm font-semibold text-slate-200 truncate max-w-[28vw] sm:max-w-[12rem]">{user.name}</p>
+                <div className="flex flex-wrap items-center justify-end gap-1">
+                  <span className={`inline-block text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
+                    connection === 'offline'
+                      ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                      : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  }`}>
+                    {connection === 'offline' ? 'Desconectado' : 'Conectado'}
+                  </span>
+                  <span className="inline-block text-[10px] uppercase font-bold px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded">
+                    Perfil: {user.role}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-11 md:min-h-0 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              >
+                <LogOut className="size-3.5" />
+                Sair
+              </button>
+            </div>
           </header>
 
           {part2Notice && (
