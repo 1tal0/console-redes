@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { RefreshCcw, MonitorPc, KeyRound, Folder, Mail, Globe } from 'lucide-react';
 
 export default function LogsView() {
   const [logType, setLogType] = useState('system');
@@ -51,18 +52,18 @@ export default function LogsView() {
           onClick={() => fetchLogs(logType)}
           className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-11 md:min-h-0 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 md:py-1.5 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
         >
-          🔄 Atualizar Logs
+          <RefreshCcw /> Atualizar Logs
         </button>
       </div>
 
       {/* Seletor de Serviço / Tipo de Log */}
       <div className="flex flex-wrap gap-2">
         {[
-          { id: 'system', label: '🖥️ Sistema (Journalctl)' },
-          { id: 'auth', label: '🔑 Autenticação & SSH (auth.log)' },
-          { id: 'ftp', label: '📁 Servidor FTP (vsftpd)' },
-          { id: 'mail', label: '✉️ Correio (Postfix/Dovecot)' },
-          { id: 'apache', label: '🌐 Web (Apache Access)' }
+          { id: 'system', label: `<MonitorPc /> Sistema (Journalctl)` },
+          { id: 'auth', label: '<KeyRound /> Autenticação & SSH (auth.log)' },
+          { id: 'ftp', label: '<Folder /> Servidor FTP (vsftpd)' },
+          { id: 'mail', label: '<Mail /> Correio (Postfix/Dovecot)' },
+          { id: 'apache', label: '<Globe /> Web (Apache Access)' }
         ].map((tab) => (
           <button
             key={tab.id}
