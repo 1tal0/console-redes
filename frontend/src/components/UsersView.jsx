@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { formatDateTime } from '../utils/formatDate';
+import { useSessionOperations } from '../context/SessionOperationsContext';
 
 const ROLE_STYLES = {
   admin: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
@@ -27,6 +28,7 @@ export default function UsersView() {
 
   const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
   const isAdmin = loggedUser?.role === 'admin';
+  const { startOperation, finishOperation } = useSessionOperations();
   const isCurrentUser = Boolean(
     editingUser &&
     loggedUser &&
@@ -78,6 +80,13 @@ export default function UsersView() {
     setError('');
     setMessage('');
 
+    const opLabel = editingUser ? 'Atualização de utilizador' : 'Cadastro de utilizador';
+    const opId = startOperation({
+      modulo: 'Usuários',
+      operacao: opLabel,
+      detalhe: form.username || form.name
+    });
+
     try {
       if (editingUser) {
         const payload = { name: form.name, role: form.role };
@@ -86,14 +95,18 @@ export default function UsersView() {
         }
         await api.put(`/users/${editingUser.id}`, payload);
         setMessage('Utilizador atualizado com sucesso.');
+        finishOperation(opId, { status: 'concluido', detalhe: `Atualizado ${form.username}` });
       } else {
         await api.post('/users', form);
         setMessage('Utilizador criado com sucesso.');
+        finishOperation(opId, { status: 'concluido', detalhe: `Criado ${form.username}` });
       }
       setShowModal(false);
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao gravar utilizador.');
+      const msg = err.response?.data?.error || 'Erro ao gravar utilizador.';
+      finishOperation(opId, { status: 'falha', detalhe: msg });
+      setError(msg);
     } finally {
       setSaving(false);
     }
@@ -105,12 +118,20 @@ export default function UsersView() {
 
     setError('');
     setMessage('');
+    const opId = startOperation({
+      modulo: 'Usuários',
+      operacao: 'Exclusão de utilizador',
+      detalhe: user.username
+    });
     try {
       await api.delete(`/users/${user.id}`);
+      finishOperation(opId, { status: 'concluido', detalhe: `Removido ${user.username}` });
       setMessage('Utilizador removido com sucesso.');
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao remover utilizador.');
+      const msg = err.response?.data?.error || 'Erro ao remover utilizador.';
+      finishOperation(opId, { status: 'falha', detalhe: msg });
+      setError(msg);
     }
   };
 

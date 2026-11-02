@@ -10,8 +10,10 @@ import {
   Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { Activity, Download, Mail, Server, Upload, UserPlus } from 'lucide-react';
 import api from '../services/api';
 import { formatDateTime, formatTime } from '../utils/formatDate';
+import { useSessionOperations } from '../context/SessionOperationsContext';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -62,7 +64,26 @@ const chartOptions = {
   }
 };
 
+
+const OP_STATUS = {
+  em_andamento: { label: 'Em andamento', className: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+  concluido: { label: 'Concluído', className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  falha: { label: 'Falha', className: 'bg-red-500/20 text-red-400 border-red-500/30' }
+};
+
+function OperationIcon({ modulo, operacao }) {
+  const name = `${modulo} ${operacao}`.toLowerCase();
+  let Icon = Activity;
+  if (name.includes('upload')) Icon = Upload;
+  else if (name.includes('download')) Icon = Download;
+  else if (name.includes('e-mail') || name.includes('smtp')) Icon = Mail;
+  else if (name.includes('ssh') || name.includes('hostname')) Icon = Server;
+  else if (name.includes('usu') || name.includes('utilizador')) Icon = UserPlus;
+  return <Icon className="size-3.5 shrink-0 text-slate-300" />;
+}
+
 export default function DashboardView() {
+  const { operations } = useSessionOperations();
   const [metrics, setMetrics] = useState(null);
   const [samples, setSamples] = useState([]);
   const [lastSuccessAt, setLastSuccessAt] = useState(null);
@@ -232,6 +253,35 @@ export default function DashboardView() {
             <Line data={chartData} options={chartOptions} />
           )}
         </div>
+      </div>
+
+
+      <div className="bg-slate-800 rounded-xl border border-slate-700 p-4 md:p-5">
+        <h3 className="text-sm md:text-base font-bold text-slate-200 mb-1">Operações Recentes da Sessão</h3>
+        <p className="text-[11px] text-slate-500 mb-4">Histórico em memória desta sessão (não persistente)</p>
+        {operations.length === 0 ? (
+          <p className="text-xs text-slate-500">Nenhuma operação registada nesta sessão.</p>
+        ) : (
+          <ul className="max-h-64 overflow-y-auto space-y-2">
+            {operations.map((op) => {
+              const st = OP_STATUS[op.status] || OP_STATUS.em_andamento;
+              return (
+                <li key={op.id} className="flex items-start gap-3 bg-slate-900/60 border border-slate-700/50 rounded-lg px-3 py-2">
+                  <div className="mt-0.5"><OperationIcon modulo={op.modulo} operacao={op.operacao} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-200">{op.operacao}</span>
+                      <span className="text-[10px] uppercase tracking-wide text-slate-500">{op.modulo}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.className}`}>{st.label}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 break-words mt-0.5">{op.detalhe}</p>
+                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">{formatDateTime(op.timestamp)}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-4 md:p-5">

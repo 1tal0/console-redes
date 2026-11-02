@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import api from '../services/api';
 import { Mail, Mails, Send, SendHorizontal, CloudSync, Reply, X } from 'lucide-react';
 import { formatDateTime } from '../utils/formatDate';
+import { useSessionOperations } from '../context/SessionOperationsContext';
 
 // Formata datas; evita exibir 1970 quando a mensagem não tem data
 const formatDate = (date) => formatDateTime(date);
 
 export default function MailView() {
+  const { startOperation, finishOperation } = useSessionOperations();
   // Estado da Sessão do Cliente de E-mail
   const [session, setSession] = useState(null); // { account, password }
   const [loginEmail, setLoginEmail] = useState('aluno@empresa.test');
@@ -123,6 +125,12 @@ export default function MailView() {
     setSending(true);
     setStatusMessage('');
 
+    const opId = startOperation({
+      modulo: 'E-mail',
+      operacao: 'Envio SMTP',
+      detalhe: `Para ${to} · ${subject}`
+    });
+
     try {
       const res = await api.post('/mail/send', {
         account: session.account,
@@ -133,6 +141,8 @@ export default function MailView() {
       });
 
       // Se o e-mail saiu mas a cópia no Sent falhou, mostra o aviso
+      const detail = res.data.warning || `Enviado para ${to}`;
+      finishOperation(opId, { status: 'concluido', detalhe: detail });
       setStatusMessage(res.data.warning || 'E-mail enviado com sucesso via SMTP!');
       setTimeout(() => {
         setShowComposeModal(false);
@@ -143,7 +153,9 @@ export default function MailView() {
         if (folder === 'Sent') loadFolder('Sent');
       }, res.data.warning ? 3500 : 1200);
     } catch (err) {
-      alert(err.response?.data?.error || 'Falha ao enviar e-mail via Postfix.');
+      const msg = err.response?.data?.error || 'Falha ao enviar e-mail via Postfix.';
+      finishOperation(opId, { status: 'falha', detalhe: msg });
+      alert(msg);
     } finally {
       setSending(false);
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useSessionOperations } from '../context/SessionOperationsContext';
 
 export default function SshView() {
   const [sshInfo, setSshInfo] = useState(null);
@@ -10,6 +11,7 @@ export default function SshView() {
   const [error, setError] = useState('');
   const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
   const canChangeHostname = loggedUser?.role === 'admin';
+  const { startOperation, finishOperation } = useSessionOperations();
 
   const fetchSshInfo = async () => {
     try {
@@ -33,12 +35,24 @@ export default function SshView() {
     setError('');
     setResult(null);
 
+    const opId = startOperation({
+      modulo: 'SSH',
+      operacao: 'Alteração reversível de hostname',
+      detalhe: newHostname
+    });
+
     try {
       const res = await api.post('/ssh/hostname', { newHostname });
       setResult(res.data.result);
+      finishOperation(opId, {
+        status: 'concluido',
+        detalhe: `Original ${res.data.result?.originalHostname} → temp ${res.data.result?.tempHostnameApplied} → restaurado ${res.data.result?.restoredHostname}`
+      });
       fetchSshInfo();
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao alterar hostname via SSH.');
+      const msg = err.response?.data?.error || 'Erro ao alterar hostname via SSH.';
+      finishOperation(opId, { status: 'falha', detalhe: msg });
+      setError(msg);
     } finally {
       setExecuting(false);
     }

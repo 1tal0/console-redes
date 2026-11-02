@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useSessionOperations } from '../context/SessionOperationsContext';
 import { formatDateTime } from '../utils/formatDate';
 
 const FTP_MONTHS = {
@@ -65,6 +66,7 @@ export default function FtpView() {
   const [message, setMessage] = useState('');
   const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
   const canUpload = loggedUser?.role === 'admin' || loggedUser?.role === 'operador';
+  const { startOperation, finishOperation } = useSessionOperations();
 
   const fetchFiles = async () => {
     try {
@@ -94,6 +96,12 @@ export default function FtpView() {
     setError('');
     setMessage('');
 
+    const opId = startOperation({
+      modulo: 'FTP',
+      operacao: 'Upload de arquivo',
+      detalhe: selectedFile.name
+    });
+
     try {
       const res = await api.post('/files/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -104,10 +112,13 @@ export default function FtpView() {
       });
 
       setMessage(`Arquivo enviado via FTP com sucesso! SHA-256: ${res.data.sha256}`);
+      finishOperation(opId, { status: 'concluido', detalhe: `${selectedFile.name} · SHA-256 ${res.data.sha256}` });
       setSelectedFile(null);
       fetchFiles();
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao efetuar upload por FTP.');
+      const msg = err.response?.data?.error || 'Erro ao efetuar upload por FTP.';
+      finishOperation(opId, { status: 'falha', detalhe: msg });
+      setError(msg);
     } finally {
       setUploading(false);
     }
@@ -115,6 +126,11 @@ export default function FtpView() {
 
   // Download do arquivo diretamente via API do Console (FTP stream)
   const downloadConsoleFile = async (filename) => {
+    const opId = startOperation({
+      modulo: 'FTP',
+      operacao: 'Download de arquivo',
+      detalhe: filename
+    });
     try {
       const response = await api.get(`/files/download/${encodeURIComponent(filename)}`, {
         responseType: 'blob'
@@ -126,7 +142,9 @@ export default function FtpView() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      finishOperation(opId, { status: 'concluido', detalhe: filename });
     } catch (err) {
+      finishOperation(opId, { status: 'falha', detalhe: `Falha no download de ${filename}` });
       alert('Erro ao realizar download via console FTP.');
     }
   };

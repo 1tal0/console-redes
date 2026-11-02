@@ -7,6 +7,7 @@ import MailView from './components/MailView';
 import SshView from './components/SshView';
 import LogsView from './components/LogsView';
 import UsersView from './components/UsersView';
+import { SessionOperationsProvider } from './context/SessionOperationsContext';
 
 // Abas permitidas por perfil (RBAC visual)
 const TABS_BY_ROLE = {
@@ -75,6 +76,7 @@ export default function App() {
   }
 
   return (
+    <SessionOperationsProvider>
     <div className="min-h-dvh bg-slate-900 text-slate-100 flex flex-col">
       {/* Header Superior */}
       <header className="bg-slate-800 border-b border-slate-700 px-3 py-3 md:px-6 md:py-4 flex justify-between items-center gap-3">
@@ -167,5 +169,6 @@ export default function App() {
         {activeTab === 'users' && allowedTabIds.includes('users') && <UsersView />}
       </main>
     </div>
+    </SessionOperationsProvider>
   );
 }
