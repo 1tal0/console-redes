@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Menu,
+  X,
   LayoutDashboard,
   Folder,
   Mail,
@@ -156,16 +157,23 @@ export default function App() {
           className={`z-40 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden transition-all duration-300
             md:sticky md:top-0 md:h-dvh md:shrink-0
             max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:h-dvh
-            ${expanded ? 'w-64 max-md:translate-x-0' : 'w-16 max-md:w-64 max-md:-translate-x-full'}`}
+            ${expanded ? 'w-64' : 'w-16'}`}
         >
-          <div className={`border-b border-slate-700 min-h-[3.5rem] flex items-center ${expanded ? 'px-4' : 'px-0 justify-center'}`}>
-            {expanded ? (
+          <div className={`h-16 shrink-0 border-b border-slate-700 flex items-center gap-2 ${expanded ? 'px-3' : 'px-0 justify-center'}`}>
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen((open) => !open)}
+              aria-label={expanded ? 'Recolher menu' : 'Expandir menu'}
+              aria-expanded={expanded}
+              className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            >
+              {expanded ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+            {expanded && (
               <div className="min-w-0">
                 <p className="text-sm font-bold leading-tight">Console N2</p>
                 <p className="text-[10px] text-slate-400 font-mono truncate">Debian 192.168.100.10</p>
               </div>
-            ) : (
-              <span className="hidden md:inline text-[10px] font-bold text-indigo-300">N2</span>
             )}
           </div>
 
@@ -229,19 +237,7 @@ export default function App() {
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0 min-h-dvh">
-          {connectionBanner}
-
-          <header className="sticky top-0 z-20 bg-slate-800 border-b border-slate-700 px-3 py-3 md:px-6 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen((open) => !open)}
-              aria-label={expanded ? 'Recolher menu' : 'Abrir menu'}
-              aria-expanded={expanded}
-              className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            >
-              <Menu className="size-5" />
-            </button>
-
+          <header className="sticky top-0 z-20 h-16 bg-slate-800 border-b border-slate-700 px-3 md:px-6 flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <h1 className="text-sm sm:text-base md:text-lg font-bold leading-tight break-words">Painel Administrativo - Servidor Debian</h1>
               <p className="text-[11px] text-slate-400 font-mono truncate">192.168.100.10</p>
@@ -266,13 +262,15 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-11 md:min-h-0 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                className="shrink-0 inline-flex items-center justify-center gap-1.5 h-9 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
               >
                 <LogOut className="size-3.5" />
                 Sair
               </button>
             </div>
           </header>
+
+          {connectionBanner}
 
           {part2Notice && (
             <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border border-amber-500/40 bg-slate-800 px-4 py-3 text-xs text-amber-200 shadow-xl">
