@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { RefreshCcw, MonitorPc, KeyRound, Folder, Mail, Globe } from 'lucide-react';
+import { RefreshCcw, Monitor, KeyRound, Folder, Mail, Globe } from 'lucide-react';
 
 export default function LogsView() {
   const [logType, setLogType] = useState('system');
@@ -52,28 +52,29 @@ export default function LogsView() {
           onClick={() => fetchLogs(logType)}
           className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-11 md:min-h-0 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 md:py-1.5 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
         >
-          <RefreshCcw /> Atualizar Logs
+          <RefreshCcw className="size-3.5" /> Atualizar Logs
         </button>
       </div>
 
       {/* Seletor de Serviço / Tipo de Log */}
       <div className="flex flex-wrap gap-2">
         {[
-          { id: 'system', label: `<MonitorPc /> Sistema (Journalctl)` },
-          { id: 'auth', label: '<KeyRound /> Autenticação & SSH (auth.log)' },
-          { id: 'ftp', label: '<Folder /> Servidor FTP (vsftpd)' },
-          { id: 'mail', label: '<Mail /> Correio (Postfix/Dovecot)' },
-          { id: 'apache', label: '<Globe /> Web (Apache Access)' }
+          { id: 'system', label: 'Sistema (Journalctl)', Icon: Monitor },
+          { id: 'auth', label: 'Autenticação & SSH (auth.log)', Icon: KeyRound },
+          { id: 'ftp', label: 'Servidor FTP (vsftpd)', Icon: Folder },
+          { id: 'mail', label: 'Correio (Postfix/Dovecot)', Icon: Mail },
+          { id: 'apache', label: 'Web (Apache Access)', Icon: Globe }
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setLogType(tab.id)}
-            className={`px-3 py-2 min-h-11 md:min-h-0 rounded text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+            className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-11 md:min-h-0 rounded text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
               logType === tab.id
                 ? 'bg-indigo-600 text-white'
                 : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/60'
             }`}
           >
+            <tab.Icon className="size-3.5 shrink-0" />
             {tab.label}
           </button>
         ))}
