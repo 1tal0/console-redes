@@ -5,7 +5,8 @@ import DashboardView from './components/DashboardView';
 import FtpView from './components/FtpView';
 import MailView from './components/MailView';
 import SshView from './components/SshView';
-import LogsView from './components/LogsView'; // Importar novo componente
+import LogsView from './components/LogsView';
+import UsersView from './components/UsersView';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -26,13 +27,14 @@ export default function App() {
     setUser(null);
   };
 
-  // Abas de navegação do painel
+  // Abas de navegação do painel (gestão de utilizadores só para admin)
   const tabs = [
     { id: 'dashboard', label: 'Observabilidade' },
     { id: 'files', label: 'Arquivos & FTP' },
     { id: 'mail', label: 'Correio E-mail' },
     { id: 'ssh', label: 'Operação SSH' },
-    { id: 'logs', label: 'Logs do Servidor' }
+    { id: 'logs', label: 'Logs do Servidor' },
+    ...(user?.role === 'admin' ? [{ id: 'users', label: 'Gerenciamento de Usuários' }] : [])
   ];
 
   // Ao navegar no celular, fecha o menu recolhível
@@ -135,6 +137,7 @@ export default function App() {
         {activeTab === 'mail' && <MailView />}
         {activeTab === 'ssh' && <SshView />}
         {activeTab === 'logs' && <LogsView />}
+        {activeTab === 'users' && user.role === 'admin' && <UsersView />}
       </main>
     </div>
   );
