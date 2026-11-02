@@ -151,7 +151,7 @@ export default function MailView() {
       <div className="w-full max-w-md mx-auto my-4 sm:my-10 bg-slate-800 p-4 sm:p-8 rounded-xl border border-slate-700 shadow-xl space-y-6">
         <div className="text-center space-y-1">
           <div className="inline-flex p-3 bg-indigo-500/10 rounded-full text-indigo-400 mb-2">
-            <Mail />
+            <Mail className="size-8" />
           </div>
           <h2 className="text-xl font-bold text-slate-100">Cliente de Correio</h2>
           <p className="text-xs text-slate-400">Insira as credenciais Linux (PAM) para aceder à conta</p>
@@ -213,15 +213,17 @@ export default function MailView() {
               setBodyText('');
               setShowComposeModal(true);
             }}
-            className="inline-flex items-center justify-center gap-1.5 min-h-11 md:min-h-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap min-h-11 md:min-h-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
-            <Send /> Escrever Mensagem
+            <Send className="size-3.5 shrink-0" />
+            Escrever Mensagem
           </button>
           <button
             onClick={() => loadFolder(folder)}
-            className="inline-flex items-center justify-center gap-1.5 min-h-11 md:min-h-0 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap min-h-11 md:min-h-0 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
-            <CloudSync /> Sincronizar
+            <CloudSync className="size-3.5 shrink-0" />
+            Sincronizar
           </button>
         </div>
 
@@ -249,7 +251,10 @@ export default function MailView() {
               folder === 'INBOX' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/40'
             }`}
           >
-            <span><Mails /> Entrada (INBOX)</span>
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap min-w-0">
+              <Mails className="size-3.5 shrink-0" />
+              Entrada (INBOX)
+            </span>
           </button>
           <button
             onClick={() => loadFolder('Sent')}
@@ -257,7 +262,10 @@ export default function MailView() {
               folder === 'Sent' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/40'
             }`}
           >
-            <span><SendHorizontal /> Enviados (Sent)</span>
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap min-w-0">
+              <SendHorizontal className="size-3.5 shrink-0" />
+              Enviados (Sent)
+            </span>
           </button>
         </div>
 
@@ -352,7 +360,7 @@ export default function MailView() {
                 aria-label="Fechar mensagem"
                 className="shrink-0 inline-flex items-center justify-center w-11 h-11 md:w-auto md:h-auto text-slate-400 hover:text-slate-200 text-sm font-bold rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               >
-                <X />
+                <X className="size-4" />
               </button>
             </div>
 
@@ -367,9 +375,10 @@ export default function MailView() {
               <button
                 onClick={() => handleReply(selectedMail)}
                 disabled={loadingBody}
-                className="inline-flex items-center justify-center gap-1.5 min-h-11 sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap min-h-11 sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               >
-                <Reply /> Responder Mensagem
+                <Reply className="size-3.5 shrink-0" />
+                Responder Mensagem
               </button>
 
               <button
@@ -394,7 +403,7 @@ export default function MailView() {
                 aria-label="Fechar janela de composição"
                 className="shrink-0 inline-flex items-center justify-center w-11 h-11 md:w-auto md:h-auto text-slate-400 hover:text-slate-200 text-sm font-bold rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               >
-                <X />
+                <X className="size-4" />
               </button>
             </div>
 
