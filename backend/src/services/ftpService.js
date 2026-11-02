@@ -1,8 +1,7 @@
 const ftp = require('basic-ftp');
-const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 const axios = require('axios');
-const { PassThrough } = require('stream');
 
 const FTP_CONFIG = {
   host: '192.168.100.10',
@@ -12,7 +11,31 @@ const FTP_CONFIG = {
   secure: false
 };
 
-// 1. Listar arquivos remotos do diretório /arquivos
+const SAFE_FILENAME = /^[a-zA-Z0-9._-]+$/;
+
+const sanitizeFtpFilename = (filename) => {
+  if (typeof filename !== 'string' || !filename.trim()) {
+    const error = new Error('Nome de arquivo inválido.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+    const error = new Error('Caminho de arquivo não permitido.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const safe = path.basename(filename);
+  if (!SAFE_FILENAME.test(safe)) {
+    const error = new Error('Nome de arquivo contém caracteres não permitidos.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return safe;
+};
+
 const listFiles = async () => {
   const client = new ftp.Client();
   client.ftp.verbose = false;
@@ -30,35 +53,34 @@ const listFiles = async () => {
   }
 };
 
-// 2. Upload de arquivo via FTP (sem salvar diretamente no disco do servidor web)
 const uploadFile = async (localFilePath, originalName) => {
+  const safeName = sanitizeFtpFilename(originalName);
   const client = new ftp.Client();
   client.ftp.verbose = false;
   try {
     await client.access(FTP_CONFIG);
-    await client.uploadFrom(localFilePath, `/arquivos/${originalName}`);
-    return { success: true, filename: originalName };
+    await client.uploadFrom(localFilePath, `/arquivos/${safeName}`);
+    return { success: true, filename: safeName };
   } finally {
     client.close();
   }
 };
 
-// 3. Obter Stream para Download via FTP pelo Console
 const downloadFileStream = async (filename, res) => {
+  const safeName = sanitizeFtpFilename(filename);
   const client = new ftp.Client();
   client.ftp.verbose = false;
   try {
     await client.access(FTP_CONFIG);
-    // No basic-ftp, passar a Writable Stream (res) diretamente no downloadTo faz a transferência via stream
-    await client.downloadTo(res, `/arquivos/${filename}`);
+    await client.downloadTo(res, `/arquivos/${safeName}`);
   } finally {
     client.close();
   }
 };
 
-// 4. Validação de Integridade: Compara Hash do Upload com o Hash baixado via HTTP Apache
 const checkExistingFileIntegrity = async (filename) => {
-  const httpResponse = await axios.get(`http://192.168.100.10/arquivos/${encodeURIComponent(filename)}`, {
+  const safeName = sanitizeFtpFilename(filename);
+  const httpResponse = await axios.get(`http://192.168.100.10/arquivos/${encodeURIComponent(safeName)}`, {
     responseType: 'arraybuffer'
   });
 
@@ -67,11 +89,11 @@ const checkExistingFileIntegrity = async (filename) => {
   const sha256 = httpHashSum.digest('hex');
 
   return {
-    filename,
+    filename: safeName,
     sha256,
-    httpUrl: `http://192.168.100.10/arquivos/${encodeURIComponent(filename)}`,
+    httpUrl: `http://192.168.100.10/arquivos/${encodeURIComponent(safeName)}`,
     status: 'ok'
   };
 };
 
-module.exports = { listFiles, uploadFile, downloadFileStream, checkExistingFileIntegrity };
+module.exports = { listFiles, uploadFile, downloadFileStream, checkExistingFileIntegrity, sanitizeFtpFilename };

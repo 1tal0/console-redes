@@ -1,6 +1,15 @@
-const { listFiles, uploadFile, downloadFileStream, checkExistingFileIntegrity } = require('../services/ftpService');
+const { listFiles, uploadFile, downloadFileStream, checkExistingFileIntegrity, sanitizeFtpFilename } = require('../services/ftpService');
 const fs = require('fs');
 const crypto = require('crypto');
+
+const rejectUnsafeName = (filename, res) => {
+  try {
+    return sanitizeFtpFilename(filename);
+  } catch (error) {
+    res.status(400).json({ error: error.message || 'Nome de arquivo inválido.' });
+    return null;
+  }
+};
 
 const getFileList = async (req, res) => {
   try {
@@ -18,22 +27,24 @@ const handleUpload = async (req, res) => {
   }
 
   const localFilePath = req.file.path;
-  const originalName = req.file.originalname;
+  const originalName = rejectUnsafeName(req.file.originalname, res);
+  if (!originalName) {
+    if (fs.existsSync(localFilePath)) {
+      fs.unlinkSync(localFilePath);
+    }
+    return;
+  }
 
   try {
-    // Hash local antes do envio
     const localBuffer = fs.readFileSync(localFilePath);
     const localSha256 = crypto.createHash('sha256').update(localBuffer).digest('hex');
 
-    // Transferência via FTP
     await uploadFile(localFilePath, originalName);
 
-    // Remover temporário local do Multer
     if (fs.existsSync(localFilePath)) {
       fs.unlinkSync(localFilePath);
     }
 
-    // Validação automática de publicação HTTP Apache
     const integrity = await checkExistingFileIntegrity(originalName);
 
     return res.json({
@@ -48,37 +59,45 @@ const handleUpload = async (req, res) => {
     if (fs.existsSync(localFilePath)) {
       fs.unlinkSync(localFilePath);
     }
+    if (error.statusCode === 400) {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('Erro no upload FTP:', error);
     return res.status(500).json({ error: 'Erro ao transferir arquivo ao servidor FTP.' });
   }
 };
 
 const handleDownload = async (req, res) => {
-  const { filename } = req.params;
-  if (!filename) {
-    return res.status(400).json({ error: 'Nome do arquivo é obrigatório.' });
-  }
+  const filename = rejectUnsafeName(req.params.filename, res);
+  if (!filename) return;
 
   try {
-    // Configura os cabeçalhos para o navegador reconhecer o download
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
-    
+
     await downloadFileStream(filename, res);
   } catch (error) {
     console.error('Erro ao baixar arquivo via FTP:', error);
     if (!res.headersSent) {
+      if (error.statusCode === 400) {
+        return res.status(400).json({ error: error.message });
+      }
       return res.status(500).json({ error: 'Falha ao realizar download via FTP.' });
     }
   }
 };
 
 const checkIntegrity = async (req, res) => {
-  const { filename } = req.params;
+  const filename = rejectUnsafeName(req.params.filename, res);
+  if (!filename) return;
+
   try {
     const result = await checkExistingFileIntegrity(filename);
     return res.json(result);
   } catch (error) {
+    if (error.statusCode === 400) {
+      return res.status(400).json({ error: error.message });
+    }
     return res.status(500).json({ error: 'Falha ao verificar publicação HTTP/Integridade.' });
   }
 };

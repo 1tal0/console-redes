@@ -1,6 +1,10 @@
 const { listEmails, getEmail: getEmailService, sendEmail: sendEmailService } = require('../services/mailService');
 
-// Traduz erros do imapflow para respostas HTTP
+const getMailPassword = (req) => {
+  const header = req.headers['x-mail-password'];
+  return typeof header === 'string' ? header : '';
+};
+
 const handleImapError = (error, res) => {
   console.error('Erro IMAP:', error.message);
 
@@ -15,9 +19,9 @@ const handleImapError = (error, res) => {
   return res.status(500).json({ error: 'Falha ao comunicar com o serviço IMAP (Dovecot).' });
 };
 
-// GET /mail?account=&password=&folder=
 const getEmails = async (req, res) => {
-  const { account, password, folder } = req.query;
+  const { account, folder } = req.query;
+  const password = getMailPassword(req);
 
   if (!account || !password) {
     return res.status(400).json({ error: 'E-mail e palavra-passe são obrigatórios.' });
@@ -31,9 +35,9 @@ const getEmails = async (req, res) => {
   }
 };
 
-// GET /mail/message?account=&password=&folder=&uid=
 const getEmail = async (req, res) => {
-  const { account, password, folder, uid } = req.query;
+  const { account, folder, uid } = req.query;
+  const password = getMailPassword(req);
 
   if (!account || !password || !uid) {
     return res.status(400).json({ error: 'E-mail, palavra-passe e UID são obrigatórios.' });
@@ -47,7 +51,6 @@ const getEmail = async (req, res) => {
   }
 };
 
-// POST /mail/send
 const sendEmail = async (req, res) => {
   const { account, password, to, subject, bodyText } = req.body;
 
@@ -59,7 +62,6 @@ const sendEmail = async (req, res) => {
     const result = await sendEmailService(account, password, to, subject, bodyText);
     return res.json({ message: 'E-mail enviado com sucesso via SMTP!', ...result });
   } catch (error) {
-    // O service lança { stage, error } quando falha no SMTP
     console.error(`Erro de Envio ${error.stage || 'SMTP'}:`, error.error || error.message);
     return res.status(500).json({ error: 'Falha ao enviar e-mail via Postfix.' });
   }

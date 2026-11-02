@@ -37,7 +37,8 @@ export default function MailView() {
 
     try {
       const res = await api.get('/mail', {
-        params: { account: loginEmail, password: loginPassword, folder: 'INBOX' }
+        params: { account: loginEmail, folder: 'INBOX' },
+        headers: { 'X-Mail-Password': loginPassword }
       });
 
       setSession({ account: loginEmail, password: loginPassword });
@@ -68,7 +69,8 @@ export default function MailView() {
 
     try {
       const res = await api.get('/mail', {
-        params: { account: session.account, password: session.password, folder: targetFolder }
+        params: { account: session.account, folder: targetFolder },
+        headers: { 'X-Mail-Password': session.password }
       });
       setMessages(res.data.messages || []);
     } catch (err) {
@@ -85,7 +87,8 @@ export default function MailView() {
 
     try {
       const res = await api.get('/mail/message', {
-        params: { account: session.account, password: session.password, folder, uid: mail.uid }
+        params: { account: session.account, folder, uid: mail.uid },
+        headers: { 'X-Mail-Password': session.password }
       });
       setSelectedMail(res.data.message);
     } catch (err) {
