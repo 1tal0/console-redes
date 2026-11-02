@@ -25,6 +25,7 @@ export default function UsersView() {
   const [saving, setSaving] = useState(false);
 
   const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
+  const isAdmin = loggedUser?.role === 'admin';
 
   const fetchUsers = async () => {
     try {
@@ -39,8 +40,12 @@ export default function UsersView() {
   };
 
   useEffect(() => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
     fetchUsers();
-  }, []);
+  }, [isAdmin]);
 
   const openCreateModal = () => {
     setEditingUser(null);
@@ -104,6 +109,14 @@ export default function UsersView() {
   };
 
   const formatDate = (value) => (value ? new Date(value).toLocaleString() : '-');
+
+  if (!isAdmin) {
+    return (
+      <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded text-sm">
+        Acesso restrito ao perfil administrador.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

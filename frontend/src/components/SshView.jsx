@@ -8,6 +8,8 @@ export default function SshView() {
   const [executing, setExecuting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
+  const canChangeHostname = loggedUser?.role === 'admin';
 
   const fetchSshInfo = async () => {
     try {
@@ -66,7 +68,8 @@ export default function SshView() {
         )}
       </div>
 
-      {/* Formulário de Alteração Reversível */}
+      {/* Alteração de hostname: apenas o perfil admin */}
+      {canChangeHostname && (
       <div className="bg-slate-800 p-4 md:p-6 rounded-xl border border-slate-700 space-y-4">
         <h3 className="text-sm font-semibold uppercase text-slate-300">Alteração Reversível do Hostname</h3>
 
@@ -110,6 +113,7 @@ export default function SshView() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

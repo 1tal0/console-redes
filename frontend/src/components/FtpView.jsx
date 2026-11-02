@@ -10,6 +10,8 @@ export default function FtpView() {
   const [integrityResult, setIntegrityResult] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
+  const canUpload = loggedUser?.role === 'admin' || loggedUser?.role === 'operador';
 
   const fetchFiles = async () => {
     try {
@@ -104,7 +106,8 @@ export default function FtpView() {
       {error && <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded text-sm">{error}</div>}
       {message && <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded text-sm">{message}</div>}
 
-      {/* Formulário de Upload com Barra de Progresso */}
+      {/* Formulário de Upload: oculto para o perfil leitor */}
+      {canUpload && (
       <div className="bg-slate-800 p-4 md:p-5 rounded-xl border border-slate-700 space-y-3">
         <h3 className="text-sm font-semibold uppercase text-slate-400">Upload de Arquivo via FTP Passivo</h3>
         <form onSubmit={handleFileUpload} className="flex flex-col md:flex-row gap-4 md:items-center">
@@ -134,6 +137,8 @@ export default function FtpView() {
           </div>
         )}
       </div>
+
+      )}
 
       {/* Tabela de Arquivos Remotos */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">

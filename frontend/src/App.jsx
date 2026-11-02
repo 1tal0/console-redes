@@ -8,6 +8,30 @@ import SshView from './components/SshView';
 import LogsView from './components/LogsView';
 import UsersView from './components/UsersView';
 
+// Abas permitidas por perfil (RBAC visual)
+const TABS_BY_ROLE = {
+  admin: [
+    { id: 'dashboard', label: 'Observabilidade' },
+    { id: 'files', label: 'Arquivos & FTP' },
+    { id: 'mail', label: 'Correio E-mail' },
+    { id: 'ssh', label: 'Operação SSH' },
+    { id: 'logs', label: 'Logs do Servidor' },
+    { id: 'users', label: 'Gerenciamento de Usuários' }
+  ],
+  operador: [
+    { id: 'dashboard', label: 'Observabilidade' },
+    { id: 'files', label: 'Arquivos & FTP' },
+    { id: 'mail', label: 'Correio E-mail' },
+    { id: 'ssh', label: 'Operação SSH' },
+    { id: 'logs', label: 'Logs do Servidor' }
+  ],
+  leitor: [
+    { id: 'dashboard', label: 'Observabilidade' },
+    { id: 'files', label: 'Arquivos & FTP' },
+    { id: 'mail', label: 'Correio E-mail' }
+  ]
+};
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -27,18 +51,21 @@ export default function App() {
     setUser(null);
   };
 
-  // Abas de navegação do painel (gestão de utilizadores só para admin)
-  const tabs = [
-    { id: 'dashboard', label: 'Observabilidade' },
-    { id: 'files', label: 'Arquivos & FTP' },
-    { id: 'mail', label: 'Correio E-mail' },
-    { id: 'ssh', label: 'Operação SSH' },
-    { id: 'logs', label: 'Logs do Servidor' },
-    ...(user?.role === 'admin' ? [{ id: 'users', label: 'Gerenciamento de Usuários' }] : [])
-  ];
+  const tabs = TABS_BY_ROLE[user?.role] || TABS_BY_ROLE.leitor;
+  const allowedTabIds = tabs.map((tab) => tab.id);
+
+  // Se a aba ativa não for permitida ao perfil, volta para o dashboard
+  useEffect(() => {
+    if (!user) return;
+    const ids = (TABS_BY_ROLE[user.role] || TABS_BY_ROLE.leitor).map((tab) => tab.id);
+    if (!ids.includes(activeTab)) {
+      setActiveTab('dashboard');
+    }
+  }, [user, activeTab]);
 
   // Ao navegar no celular, fecha o menu recolhível
   const handleNavigate = (id) => {
+    if (!allowedTabIds.includes(id)) return;
     setActiveTab(id);
     setMenuOpen(false);
   };
@@ -133,11 +160,11 @@ export default function App() {
       {/* Conteúdo Principal */}
       <main className="flex-1 p-3 md:p-6 max-w-7xl w-full mx-auto">
         {activeTab === 'dashboard' && <DashboardView />}
-        {activeTab === 'files' && <FtpView />}
-        {activeTab === 'mail' && <MailView />}
-        {activeTab === 'ssh' && <SshView />}
-        {activeTab === 'logs' && <LogsView />}
-        {activeTab === 'users' && user.role === 'admin' && <UsersView />}
+        {activeTab === 'files' && allowedTabIds.includes('files') && <FtpView />}
+        {activeTab === 'mail' && allowedTabIds.includes('mail') && <MailView />}
+        {activeTab === 'ssh' && allowedTabIds.includes('ssh') && <SshView />}
+        {activeTab === 'logs' && allowedTabIds.includes('logs') && <LogsView />}
+        {activeTab === 'users' && allowedTabIds.includes('users') && <UsersView />}
       </main>
     </div>
   );

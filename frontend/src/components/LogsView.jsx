@@ -6,6 +6,8 @@ export default function LogsView() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
+  const canViewLogs = loggedUser?.role === 'admin' || loggedUser?.role === 'operador';
 
   const fetchLogs = async (type) => {
     setLoading(true);
@@ -22,8 +24,20 @@ export default function LogsView() {
   };
 
   useEffect(() => {
+    if (!canViewLogs) {
+      setLoading(false);
+      return;
+    }
     fetchLogs(logType);
-  }, [logType]);
+  }, [logType, canViewLogs]);
+
+  if (!canViewLogs) {
+    return (
+      <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded text-sm">
+        Acesso aos logs restrito aos perfis administrador e operador.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
