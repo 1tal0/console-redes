@@ -1,6 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
+const FTP_MONTHS = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+};
+
+// Converte datas do LIST do vsftpd (ex.: "Oct 30 21:53" ou "Oct 30 2024")
+function formatFtpDate(value) {
+  if (!value) return '-';
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toLocaleString('pt-BR');
+  }
+
+  const raw = String(value).trim();
+  const match = raw.match(/^([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4}|\d{1,2}:\d{2}(?::\d{2})?)$/);
+
+  if (match) {
+    const month = FTP_MONTHS[match[1].toLowerCase()];
+    const day = Number(match[2]);
+    const now = new Date();
+    let year = now.getFullYear();
+    let hours = 0;
+    let minutes = 0;
+    let seconds = 0;
+
+    if (month === undefined) return raw;
+
+    if (match[3].includes(':')) {
+      const parts = match[3].split(':').map(Number);
+      hours = parts[0];
+      minutes = parts[1];
+      seconds = parts[2] || 0;
+      const candidate = new Date(year, month, day, hours, minutes, seconds);
+      if (candidate.getTime() > now.getTime() + 24 * 60 * 60 * 1000) {
+        year -= 1;
+      }
+    } else {
+      year = Number(match[3]);
+    }
+
+    const parsed = new Date(year, month, day, hours, minutes, seconds);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleString('pt-BR');
+    }
+  }
+
+  const fallback = new Date(raw);
+  if (!Number.isNaN(fallback.getTime())) {
+    return fallback.toLocaleString('pt-BR');
+  }
+  return raw;
+}
+
 export default function FtpView() {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +206,7 @@ export default function FtpView() {
                 <li key={idx} className="p-3.5 space-y-2">
                   <p className="font-mono text-slate-100 break-all">{file.name}</p>
                   <p className="text-[11px] text-slate-400">{(file.size / 1024).toFixed(2)} KB</p>
-                  <p className="text-[11px] text-slate-500 break-words">{new Date(file.modifiedAt).toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-500 break-words">{formatFtpDate(file.modifiedAt)}</p>
                   <div className="flex flex-col gap-2 pt-1">
                     <button
                       onClick={() => downloadConsoleFile(file.name)}
@@ -190,7 +242,7 @@ export default function FtpView() {
                       <td className="p-3.5 font-mono text-slate-100 break-all">{file.name}</td>
                       <td className="p-3.5 whitespace-nowrap">{(file.size / 1024).toFixed(2)} KB</td>
                       <td className="p-3.5 whitespace-nowrap hidden lg:table-cell">
-                        {new Date(file.modifiedAt).toLocaleString()} | {file.modifiedAt}
+                        {formatFtpDate(file.modifiedAt)}
                       </td>
                       <td className="p-3.5 text-right whitespace-nowrap space-x-2">
                         <button
