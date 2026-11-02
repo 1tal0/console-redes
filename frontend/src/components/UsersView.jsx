@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import { formatDateTime } from '../utils/formatDate';
 
 const ROLE_STYLES = {
   admin: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
@@ -113,7 +114,7 @@ export default function UsersView() {
     }
   };
 
-  const formatDate = (value) => (value ? new Date(value).toLocaleString() : '-');
+  const formatDate = (value) => formatDateTime(value);
 
   if (!isAdmin) {
     return (

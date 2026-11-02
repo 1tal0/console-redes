@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { formatDateTime } from '../utils/formatDate';
 
 const FTP_MONTHS = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
@@ -10,7 +11,7 @@ const FTP_MONTHS = {
 function formatFtpDate(value) {
   if (!value) return '-';
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toLocaleString('pt-BR');
+    return formatDateTime(value);
   }
 
   const raw = String(value).trim();
@@ -42,13 +43,13 @@ function formatFtpDate(value) {
 
     const parsed = new Date(year, month, day, hours, minutes, seconds);
     if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toLocaleString('pt-BR');
+      return formatDateTime(parsed);
     }
   }
 
   const fallback = new Date(raw);
   if (!Number.isNaN(fallback.getTime())) {
-    return fallback.toLocaleString('pt-BR');
+    return formatDateTime(fallback);
   }
   return raw;
 }

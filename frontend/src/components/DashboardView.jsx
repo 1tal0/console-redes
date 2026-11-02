@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import { formatDateTime } from '../utils/formatDate';
 
 export default function DashboardView() {
   const [metrics, setMetrics] = useState(null);
@@ -32,7 +33,7 @@ export default function DashboardView() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h2 className="text-lg md:text-xl font-bold text-slate-100 break-words">Observabilidade & Métricas do Sistema</h2>
         <span className="self-start sm:self-auto text-[11px] md:text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700 whitespace-nowrap">
-          Última atualização: {new Date(metrics.timestamp).toLocaleTimeString()}
+          Última atualização: {formatDateTime(metrics.timestamp)}
         </span>
       </div>
 
