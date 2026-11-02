@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  Folder,
+  Mail,
+  Terminal,
+  ScrollText,
+  Users,
+  Shield,
+  Settings,
+  Building2,
+  LogOut
+} from 'lucide-react';
 import LoginView from './components/LoginView';
 import DashboardView from './components/DashboardView';
 import FtpView from './components/FtpView';
@@ -10,7 +23,6 @@ import UsersView from './components/UsersView';
 import { SessionOperationsProvider } from './context/SessionOperationsContext';
 import { subscribeConnection } from './services/notifyBus';
 
-// Abas permitidas por perfil (RBAC visual)
 const TABS_BY_ROLE = {
   admin: [
     { id: 'dashboard', label: 'Observabilidade' },
@@ -34,16 +46,30 @@ const TABS_BY_ROLE = {
   ]
 };
 
+const TAB_ICONS = {
+  dashboard: LayoutDashboard,
+  files: Folder,
+  mail: Mail,
+  ssh: Terminal,
+  logs: ScrollText,
+  users: Users,
+  audit: Shield,
+  services: Settings,
+  enterprise: Building2
+};
+
 const PART2_TABS = [
-  { id: 'audit', label: '🛡 Trilha de Auditoria' },
-  { id: 'services', label: '⚙️ Gestão de Serviços (Start/Stop)' },
-  { id: 'enterprise', label: '🏢 Novos Serviços Empresariais' }
+  { id: 'audit', label: 'Trilha de Auditoria' },
+  { id: 'services', label: 'Gestão de Serviços (Start/Stop)' },
+  { id: 'enterprise', label: 'Novos Serviços Empresariais' }
 ];
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [menuOpen, setMenuOpen] = useState(false); // Menu recolhível no celular
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+  );
   const [part2Notice, setPart2Notice] = useState(false);
   const [connection, setConnection] = useState('online');
 
@@ -57,6 +83,16 @@ export default function App() {
 
   useEffect(() => subscribeConnection(setConnection), []);
 
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem('console_n2_token');
     localStorage.removeItem('console_n2_user');
@@ -66,7 +102,6 @@ export default function App() {
   const tabs = TABS_BY_ROLE[user?.role] || TABS_BY_ROLE.leitor;
   const allowedTabIds = tabs.map((tab) => tab.id);
 
-  // Se a aba ativa não for permitida ao perfil, volta para o dashboard
   useEffect(() => {
     if (!user) return;
     const ids = (TABS_BY_ROLE[user.role] || TABS_BY_ROLE.leitor).map((tab) => tab.id);
@@ -75,11 +110,12 @@ export default function App() {
     }
   }, [user, activeTab]);
 
-  // Ao navegar no celular, fecha o menu recolhível
   const handleNavigate = (id) => {
     if (!allowedTabIds.includes(id)) return;
     setActiveTab(id);
-    setMenuOpen(false);
+    if (window.innerWidth < 768) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const showPart2Notice = () => {
@@ -89,10 +125,10 @@ export default function App() {
   };
 
   const connectionBanner = connection === 'offline' ? (
-        <div className="bg-amber-500/15 border-b border-amber-500/40 text-amber-200 text-xs text-center px-3 py-2">
-          ⚠️ Conexão perdida com o servidor 192.168.100.10. Tentando reconectar...
-        </div>
-      ) : null;
+    <div className="bg-amber-500/15 border-b border-amber-500/40 text-amber-200 text-xs text-center px-3 py-2">
+      ⚠️ Conexão perdida com o servidor 192.168.100.10. Tentando reconectar...
+    </div>
+  ) : null;
 
   if (!user) {
     return (
@@ -103,141 +139,175 @@ export default function App() {
     );
   }
 
+  const expanded = isSidebarOpen;
+
   return (
     <SessionOperationsProvider>
-    <div className="min-h-dvh bg-slate-900 text-slate-100 flex flex-col">
-      {connectionBanner}
-      {/* Header Superior */}
-      <header className="bg-slate-800 border-b border-slate-700 px-3 py-3 md:px-6 md:py-4 flex justify-between items-center gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          {/* Botão hambúrguer: só aparece abaixo de md */}
+      <div className="min-h-dvh bg-slate-900 text-slate-100 flex">
+        {expanded && (
           <button
             type="button"
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-label={menuOpen ? 'Fechar menu de navegação' : 'Abrir menu de navegação'}
-            aria-expanded={menuOpen}
-            aria-controls="menu-mobile"
-            className="md:hidden shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-          >
-            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
+            aria-label="Fechar menu"
+            className="fixed inset-0 z-30 bg-slate-950/60 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
 
-          <div className="min-w-0">
-            <h1 className="text-sm sm:text-base md:text-lg font-bold text-slate-100 leading-tight break-words">Painel Administrativo - Servidor Debian</h1>
-            <p className="text-[11px] md:text-xs text-slate-400 font-mono truncate">192.168.100.10</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 md:gap-4 shrink-0 min-w-0">
-          <div className="text-right min-w-0 max-w-[40vw] sm:max-w-[16rem]">
-            <p className="text-xs sm:text-sm font-semibold text-slate-200 truncate">{user.name}</p>
-            <div className="flex flex-wrap items-center justify-end gap-1">
-              <span className={`inline-block truncate text-[11px] md:text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
-                connection === 'offline'
-                  ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-              }`}>
-                {connection === 'offline' ? 'Desconectado' : 'Conectado'}
-              </span>
-              <span className="inline-block max-w-full truncate text-[11px] md:text-[10px] uppercase font-bold px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded">
-                Perfil: {user.role}
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="shrink-0 inline-flex items-center justify-center min-h-11 md:min-h-0 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 md:py-1.5 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-          >
-            Sair
-          </button>
-        </div>
-      </header>
-
-      {/* Navegação Secundária (celular): menu recolhível */}
-      {menuOpen && (
-        <nav id="menu-mobile" className="md:hidden bg-slate-800 border-b border-slate-700 px-3 py-2">
-          <ul className="flex flex-col gap-1">
-            {tabs.map((tab) => (
-              <li key={tab.id}>
-                <button
-                  onClick={() => handleNavigate(tab.id)}
-                  aria-current={activeTab === tab.id ? 'page' : undefined}
-                  className={`w-full text-left rounded-lg px-3 py-3 text-sm font-semibold transition border-l-4 ${
-                    activeTab === tab.id
-                      ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300'
-                      : 'border-transparent text-slate-300 hover:bg-slate-700/60'
-                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400`}
-                >
-                  {tab.label}
-                </button>
-              </li>
-            ))}
-            {PART2_TABS.map((tab) => (
-              <li key={tab.id}>
-                <button
-                  type="button"
-                  onClick={showPart2Notice}
-                  className="w-full text-left rounded-lg px-3 py-3 text-sm font-semibold border-l-4 border-transparent text-slate-500 opacity-60 cursor-not-allowed"
-                  title="Em breve - Parte 2"
-                >
-                  {tab.label}
-                  <span className="ml-2 text-[10px] uppercase tracking-wide text-amber-400/80">[Em breve - Parte 2]</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
-
-      {/* Navegação Secundária (desktop) */}
-      <nav className="hidden md:block bg-slate-800/50 border-b border-slate-700/50 px-6">
-        <div className="flex gap-2 overflow-x-auto">
-          {tabs.map((tab) => (
+        <aside
+          className={`fixed md:static z-40 h-dvh shrink-0 bg-slate-800 border-r border-slate-700 flex flex-col transition-all duration-300 overflow-hidden ${
+            expanded ? 'w-64' : 'w-0 md:w-16'
+          }`}
+        >
+          <div className="flex items-center gap-2 px-3 py-3 border-b border-slate-700 min-h-[3.5rem]">
             <button
-              key={tab.id}
-              onClick={() => handleNavigate(tab.id)}
-              aria-current={activeTab === tab.id ? 'page' : undefined}
-              className={`whitespace-nowrap py-3 px-4 text-xs font-semibold uppercase tracking-wider border-b-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-                activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-          {PART2_TABS.map((tab) => (
-            <button
-              key={tab.id}
               type="button"
-              onClick={showPart2Notice}
-              title="Em breve - Parte 2"
-              className="whitespace-nowrap py-3 px-4 text-xs font-semibold uppercase tracking-wider border-b-2 border-transparent text-slate-500 opacity-60 cursor-not-allowed"
+              onClick={() => setIsSidebarOpen((open) => !open)}
+              aria-label={expanded ? 'Recolher menu' : 'Expandir menu'}
+              aria-expanded={expanded}
+              className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
-              {tab.label}
-              <span className="ml-1 normal-case font-bold text-[9px] text-amber-400/80">[Em breve - Parte 2]</span>
+              {expanded ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
-          ))}
-        </div>
-      </nav>
+            {expanded && (
+              <div className="min-w-0">
+                <p className="text-sm font-bold leading-tight">Console N2</p>
+                <p className="text-[10px] text-slate-400 font-mono truncate">192.168.100.10</p>
+              </div>
+            )}
+          </div>
 
-      {part2Notice && (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border border-amber-500/40 bg-slate-800 px-4 py-3 text-xs text-amber-200 shadow-xl">
-          Funcionalidade pertencente à evolução da Parte 2.
-        </div>
-      )}
+          <div className={`border-b border-slate-700 ${expanded ? 'px-3 py-3' : 'px-2 py-2'}`}>
+            {expanded ? (
+              <>
+                <p className="text-xs font-semibold text-slate-200 truncate">{user.name}</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
+                    connection === 'offline'
+                      ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                      : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  }`}>
+                    {connection === 'offline' ? 'Desconectado' : 'Conectado'}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded">
+                    {user.role}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="hidden md:flex justify-center">
+                <span className={`size-2.5 rounded-full ${connection === 'offline' ? 'bg-red-400' : 'bg-emerald-400'}`} title={connection === 'offline' ? 'Desconectado' : 'Conectado'} />
+              </div>
+            )}
+          </div>
 
-      {/* Conteúdo Principal */}
-      <main className="flex-1 p-3 md:p-6 max-w-7xl w-full mx-auto">
-        {activeTab === 'dashboard' && <DashboardView />}
-        {activeTab === 'files' && allowedTabIds.includes('files') && <FtpView />}
-        {activeTab === 'mail' && allowedTabIds.includes('mail') && <MailView />}
-        {activeTab === 'ssh' && allowedTabIds.includes('ssh') && <SshView />}
-        {activeTab === 'logs' && allowedTabIds.includes('logs') && <LogsView />}
-        {activeTab === 'users' && allowedTabIds.includes('users') && <UsersView />}
-      </main>
-    </div>
+          <nav className="flex-1 overflow-y-auto py-2 px-2">
+            <ul className="space-y-1">
+              {tabs.map((tab) => {
+                const Icon = TAB_ICONS[tab.id] || LayoutDashboard;
+                const active = activeTab === tab.id;
+                return (
+                  <li key={tab.id}>
+                    <button
+                      type="button"
+                      title={tab.label}
+                      onClick={() => handleNavigate(tab.id)}
+                      aria-current={active ? 'page' : undefined}
+                      className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                        active
+                          ? 'bg-indigo-500/15 text-indigo-300'
+                          : 'text-slate-300 hover:bg-slate-700/60'
+                      } ${expanded ? '' : 'md:justify-center'}`}
+                    >
+                      <Icon className="size-4 shrink-0" />
+                      {expanded && <span className="truncate text-left">{tab.label}</span>}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <p className={`mt-4 mb-1 text-[10px] uppercase tracking-wide text-slate-500 ${expanded ? 'px-2' : 'hidden md:block text-center'}`}>
+              {expanded ? 'Parte 2' : 'P2'}
+            </p>
+            <ul className="space-y-1">
+              {PART2_TABS.map((tab) => {
+                const Icon = TAB_ICONS[tab.id] || Shield;
+                return (
+                  <li key={tab.id}>
+                    <button
+                      type="button"
+                      title={`${tab.label} · Em breve - Parte 2`}
+                      onClick={showPart2Notice}
+                      className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-semibold text-slate-500 opacity-60 cursor-not-allowed ${expanded ? '' : 'md:justify-center'}`}
+                    >
+                      <Icon className="size-4 shrink-0" />
+                      {expanded && (
+                        <span className="min-w-0 text-left">
+                          <span className="block truncate">{tab.label}</span>
+                          <span className="block text-[9px] uppercase text-amber-400/80">Em breve - Parte 2</span>
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          <div className="p-2 border-t border-slate-700">
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Sair"
+              className={`w-full inline-flex items-center gap-2 rounded-lg px-2.5 py-2.5 text-xs font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${expanded ? '' : 'md:justify-center'}`}
+            >
+              <LogOut className="size-4 shrink-0" />
+              {expanded && <span>Sair</span>}
+            </button>
+          </div>
+        </aside>
+
+        <div className="flex-1 flex flex-col min-w-0 min-h-dvh">
+          {connectionBanner}
+
+          <header className="bg-slate-800 border-b border-slate-700 px-3 py-3 md:px-6 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen((open) => !open)}
+              aria-label={expanded ? 'Recolher menu' : 'Abrir menu'}
+              className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            >
+              <Menu className="size-5" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm sm:text-base md:text-lg font-bold leading-tight break-words">Painel Administrativo - Servidor Debian</h1>
+              <p className="text-[11px] text-slate-400 font-mono truncate">192.168.100.10</p>
+            </div>
+            <span className={`hidden sm:inline-block text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
+              connection === 'offline'
+                ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+            }`}>
+              {connection === 'offline' ? 'Desconectado' : 'Conectado'}
+            </span>
+          </header>
+
+          {part2Notice && (
+            <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border border-amber-500/40 bg-slate-800 px-4 py-3 text-xs text-amber-200 shadow-xl">
+              Funcionalidade pertencente à evolução da Parte 2.
+            </div>
+          )}
+
+          <main className="flex-1 p-3 md:p-6 w-full max-w-7xl mx-auto">
+            {activeTab === 'dashboard' && <DashboardView />}
+            {activeTab === 'files' && allowedTabIds.includes('files') && <FtpView />}
+            {activeTab === 'mail' && allowedTabIds.includes('mail') && <MailView />}
+            {activeTab === 'ssh' && allowedTabIds.includes('ssh') && <SshView />}
+            {activeTab === 'logs' && allowedTabIds.includes('logs') && <LogsView />}
+            {activeTab === 'users' && allowedTabIds.includes('users') && <UsersView />}
+          </main>
+        </div>
+      </div>
     </SessionOperationsProvider>
   );
 }
