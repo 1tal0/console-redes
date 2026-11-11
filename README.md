@@ -124,9 +124,9 @@ Se o Vite correr no Ubuntu, o host `--host` permite abrir `http://192.168.100.20
 
 | Recurso | Intervalo / modo | Observação |
 | --- | --- | --- |
-| CPU, RAM, disco, uptime, serviços, teste HTTP | **1 segundo** (polling no `DashboardView`) | Amostras de CPU/RAM no gráfico: últimas 15–20 da sessão |
+| CPU, RAM, disco, uptime, serviços, teste HTTP | **5 segundos** (polling no `DashboardView`) | Amostras de CPU/RAM no gráfico: últimas 15–20 da sessão |
 | Timestamp da última atualização | Cada resposta bem-sucedida | Formato `DD/MM/YYYY HH:mm:ss` (24 h) |
-| Coleta desatualizada | Sem sucesso há **mais de 5 s** | Banner de aviso; últimos valores mantidos |
+| Coleta desatualizada | Sem sucesso há **mais de 10 s** | Banner de aviso; últimos valores mantidos |
 | Logs técnicos | **Sob demanda** (botão Atualizar) | `journalctl` / `/var/log` filtrados por tipo |
 | Teste HTTP | Mesmo ciclo de métricas | Código, latência em ms, instante da medição |
 
@@ -216,7 +216,7 @@ console-n2/
 ## Notas de demonstração (aceitação Parte 1)
 
 1. Entrar com `admin` / `operador` / `leitor` e confirmar abas e 403 em escrita do leitor.
-2. Ver métricas a atualizar a cada 1 s e o gráfico.
+2. Ver métricas a atualizar a cada 5 s e o gráfico.
 3. Abrir o site, enviar ficheiro por FTP, descarregar pelo console e conferir SHA-256 / HTTP.
 4. Enviar e-mail, ler na outra conta, responder e verificar Sent.
 5. Alterar e restaurar o hostname via console (admin).

@@ -18,7 +18,7 @@ import { useSessionOperations } from '../context/SessionOperationsContext';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
 const MAX_SAMPLES = 20;
-const STALE_AFTER_MS = 5000;
+const STALE_AFTER_MS = 10000;
 const SITE_URL = 'http://site.empresa.test/';
 
 function formatUptime(totalSeconds) {
@@ -122,7 +122,7 @@ export default function DashboardView() {
 
   useEffect(() => {
     fetchMetrics();
-    const poll = setInterval(fetchMetrics, 1000);
+    const poll = setInterval(fetchMetrics, 5000);
     const clock = setInterval(() => setNow(Date.now()), 1000);
     return () => {
       clearInterval(poll);
@@ -171,7 +171,7 @@ export default function DashboardView() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="min-w-0">
           <h2 className="text-lg md:text-xl font-bold text-slate-100 break-words">Observabilidade & Métricas do Sistema</h2>
-          <p className="text-[11px] text-slate-500 font-mono">Debian 192.168.100.10 · polling 1s · amostras da sessão</p>
+          <p className="text-[11px] text-slate-500 font-mono">Debian 192.168.100.10 · polling 5s · amostras da sessão</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <a
