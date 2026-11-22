@@ -21,6 +21,7 @@ import SshView from './components/SshView';
 import LogsView from './components/LogsView';
 import UsersView from './components/UsersView';
 import AuditView from './components/AuditView';
+import ServicesView from './components/ServicesView';
 import api from './services/api';
 import { SessionOperationsProvider } from './context/SessionOperationsContext';
 import { subscribeConnection } from './services/notifyBus';
@@ -28,6 +29,7 @@ import { subscribeConnection } from './services/notifyBus';
 const TABS_BY_ROLE = {
   admin: [
     { id: 'dashboard', label: 'Observabilidade' },
+    { id: 'services', label: 'Gestão de Serviços' },
     { id: 'files', label: 'Arquivos & FTP' },
     { id: 'mail', label: 'Correio E-mail' },
     { id: 'ssh', label: 'Operação SSH' },
@@ -37,6 +39,7 @@ const TABS_BY_ROLE = {
   ],
   operador: [
     { id: 'dashboard', label: 'Observabilidade' },
+    { id: 'services', label: 'Gestão de Serviços' },
     { id: 'files', label: 'Arquivos & FTP' },
     { id: 'mail', label: 'Correio E-mail' },
     { id: 'ssh', label: 'Operação SSH' },
@@ -62,7 +65,6 @@ const TAB_ICONS = {
 };
 
 const PART2_TABS = [
-  { id: 'services', label: 'Gestão de Serviços (Start/Stop)' },
   { id: 'enterprise', label: 'Novos Serviços Empresariais' }
 ];
 
@@ -292,7 +294,8 @@ export default function App() {
           )}
 
           <main className="flex-1 p-3 md:p-6 w-full max-w-7xl mx-auto">
-            {activeTab === 'dashboard' && <DashboardView role={user.role} />}
+            {activeTab === 'dashboard' && <DashboardView />}
+            {allowedTabIds.includes('services') && <ServicesView active={activeTab === 'services'} />}
             {activeTab === 'files' && allowedTabIds.includes('files') && <FtpView />}
             {activeTab === 'mail' && allowedTabIds.includes('mail') && <MailView />}
             {activeTab === 'ssh' && allowedTabIds.includes('ssh') && <SshView />}
