@@ -279,7 +279,7 @@ export default function App() {
           )}
 
           <main className="flex-1 p-3 md:p-6 w-full max-w-7xl mx-auto">
-            {activeTab === 'dashboard' && <DashboardView />}
+            {activeTab === 'dashboard' && <DashboardView role={user.role} />}
             {activeTab === 'files' && allowedTabIds.includes('files') && <FtpView />}
             {activeTab === 'mail' && allowedTabIds.includes('mail') && <MailView />}
             {activeTab === 'ssh' && allowedTabIds.includes('ssh') && <SshView />}

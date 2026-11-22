@@ -1,39 +1,16 @@
 const si = require('systeminformation');
-const { exec } = require('child_process');
-const util = require('util');
 const axios = require('axios');
+const { SERVICES, getServiceStatus } = require('./serviceControlService');
 
-const execPromise = util.promisify(exec);
-
-// Nomes das unidades systemd dos 5 serviços da N1
-const SERVICES = ['apache2', 'vsftpd', 'postfix', 'dovecot', 'ssh'];
-
-// Obtém o estado de cada serviço via systemctl show
 const getServicesStatus = async () => {
-  const serviceStatuses = {};
-
-  for (const service of SERVICES) {
+  const entries = await Promise.all(SERVICES.map(async (serviceName) => {
     try {
-      const { stdout } = await execPromise(`systemctl show ${service} -p ActiveState -p SubState`);
-      const lines = stdout.trim().split('\n');
-      let activeState = 'desconhecido';
-      let subState = 'desconhecido';
-
-      lines.forEach(line => {
-        if (line.startsWith('ActiveState=')) activeState = line.split('=')[1];
-        if (line.startsWith('SubState=')) subState = line.split('=')[1];
-      });
-
-      serviceStatuses[service] = {
-        state: activeState === 'active' ? 'ativo' : 'inativo',
-        subState: subState,
-      };
-    } catch (error) {
-      serviceStatuses[service] = { state: 'falha', subState: 'erro' };
+      return [serviceName, await getServiceStatus(serviceName)];
+    } catch {
+      return [serviceName, { state: 'falha', activeState: 'unknown', subState: 'erro' }];
     }
-  }
-
-  return serviceStatuses;
+  }));
+  return Object.fromEntries(entries);
 };
 
 // Mede a latência e o código de resposta HTTP do Apache

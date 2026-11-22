@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,7 +10,7 @@ import {
   Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { Activity, Download, Mail, Server, Upload, UserPlus } from 'lucide-react';
+import { Activity, Download, LoaderCircle, Mail, Server, Upload, UserPlus } from 'lucide-react';
 import api from '../services/api';
 import { formatDateTime, formatTime } from '../utils/formatDate';
 import { useSessionOperations } from '../context/SessionOperationsContext';
@@ -20,6 +20,15 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 const MAX_SAMPLES = 20;
 const STALE_AFTER_MS = 10000;
 const SITE_URL = 'http://site.empresa.test/';
+const SERVICE_ACTIONS = [
+  { action: 'start', label: 'Iniciar' },
+  { action: 'stop', label: 'Parar' },
+  { action: 'restart', label: 'Reiniciar' }
+];
+const STOP_WARNINGS = {
+  ssh: 'Parar o SSH bloqueará novas conexões SSH até que o serviço seja iniciado novamente pelo painel ou pelo console local. Deseja continuar?',
+  apache2: 'Parar o Apache deixará os sites atendidos pelo serviço indisponíveis. Deseja continuar?'
+};
 
 function formatUptime(totalSeconds) {
   const seconds = Math.max(0, Number(totalSeconds) || 0);
@@ -82,20 +91,27 @@ function OperationIcon({ modulo, operacao }) {
   return <Icon className="size-3.5 shrink-0 text-slate-300" />;
 }
 
-export default function DashboardView() {
-  const { operations } = useSessionOperations();
+export default function DashboardView({ role }) {
+  const { operations, startOperation, finishOperation } = useSessionOperations();
   const [metrics, setMetrics] = useState(null);
   const [samples, setSamples] = useState([]);
   const [lastSuccessAt, setLastSuccessAt] = useState(null);
   const [httpTestAt, setHttpTestAt] = useState(null);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(Date.now);
   const [loading, setLoading] = useState(true);
+  const [pendingActions, setPendingActions] = useState({});
+  const metricsRequests = useRef({ started: 0, applied: 0, mounted: false });
+  const canControlServices = role === 'admin' || role === 'operador';
 
   const stale = lastSuccessAt != null && now - lastSuccessAt > STALE_AFTER_MS;
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
+    const requests = metricsRequests.current;
+    const request = ++requests.started;
     try {
       const res = await api.get('/metrics');
+      if (request <= requests.applied) return;
+      requests.applied = request;
       const data = res.data;
       const collectedAt = Date.now();
 
@@ -116,19 +132,59 @@ export default function DashboardView() {
     } catch {
       // Mantém os últimos valores; o aviso de desatualização usa lastSuccessAt
     } finally {
-      setLoading(false);
+      if (requests.mounted && request >= requests.applied) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    const requests = metricsRequests.current;
+    requests.mounted = true;
     fetchMetrics();
     const poll = setInterval(fetchMetrics, 5000);
     const clock = setInterval(() => setNow(Date.now()), 1000);
     return () => {
+      requests.mounted = false;
+      requests.applied = requests.started;
       clearInterval(poll);
       clearInterval(clock);
     };
-  }, []);
+  }, [fetchMetrics]);
+
+  const executeServiceAction = async (serviceName, action, label) => {
+    if (!canControlServices || pendingActions[serviceName]) return;
+    const warning = action === 'stop' && STOP_WARNINGS[serviceName];
+    if (warning && !window.confirm(warning)) return;
+
+    setPendingActions((previous) => ({ ...previous, [serviceName]: action }));
+    const operationId = startOperation({
+      modulo: 'Observabilidade',
+      operacao: `${label} ${serviceName}`,
+      detalhe: 'Aguardando resposta do systemctl.'
+    });
+
+    try {
+      const { data } = await api.post(`/services/${serviceName}/${action}`, null, { timeout: 130000 });
+      const { state, activeState, subState } = data;
+      setMetrics((previous) => ({
+        ...previous,
+        services: { ...previous.services, [serviceName]: { state, activeState, subState } }
+      }));
+      finishOperation(operationId, {
+        status: 'concluido',
+        detalhe: `Estado atual: ${activeState} (${subState}).`
+      });
+    } catch (error) {
+      finishOperation(operationId, {
+        status: 'falha',
+        detalhe: error.response?.data?.error || 'Falha de comunicação. Confira o estado atual do serviço.'
+      });
+    } finally {
+      const requests = metricsRequests.current;
+      requests.applied = requests.started;
+      if (requests.mounted) void fetchMetrics();
+      setPendingActions((previous) => ({ ...previous, [serviceName]: undefined }));
+    }
+  };
 
   if (loading && !metrics) {
     return <div className="text-slate-400 text-center py-10">Carregando métricas em tempo real...</div>;
@@ -287,7 +343,6 @@ export default function DashboardView() {
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h3 className="text-sm md:text-base font-bold text-slate-200">Estado dos 5 Serviços da Infraestrutura</h3>
-          <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border border-amber-500/40 text-amber-300 bg-amber-500/10">Ações = Parte 2</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {Object.entries(metrics.services).map(([serviceName, info]) => (
@@ -299,22 +354,27 @@ export default function DashboardView() {
                 ● {info.state.toUpperCase()}
               </span>
               <span className="text-[11px] md:text-[10px] text-slate-500 mt-1 font-mono break-all">{info.subState}</span>
-              <div className="mt-3 w-full space-y-1 opacity-60">
-                <p className="text-[9px] uppercase tracking-wide text-amber-400/80">Ações · Parte 2</p>
-                <div className="flex flex-wrap justify-center gap-1">
-                  {['Iniciar', 'Parar', 'Reiniciar'].map((action) => (
+              {canControlServices && (
+                <div className="mt-3 flex flex-wrap justify-center gap-1">
+                  {SERVICE_ACTIONS.map(({ action, label }) => (
                     <button
                       key={action}
                       type="button"
-                      disabled
-                      title="Parte 2"
-                      className="text-[10px] px-2 py-1 rounded border border-slate-600 text-slate-400 cursor-not-allowed"
+                      onClick={() => executeServiceAction(serviceName, action, label)}
+                      disabled={Boolean(pendingActions[serviceName])
+                        || (info.activeState === 'active' && action === 'start')
+                        || (info.activeState === 'inactive' && action !== 'start')}
+                      aria-busy={pendingActions[serviceName] === action}
+                      className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-slate-600 text-slate-200 enabled:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {action}
+                      {pendingActions[serviceName] === action && (
+                        <LoaderCircle aria-hidden="true" className="size-3 animate-spin" />
+                      )}
+                      {label}
                     </button>
                   ))}
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>

@@ -1,10 +1,11 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { pushToast } from '../services/notifyBus';
 
 const SessionOperationsContext = createContext(null);
 
 export function SessionOperationsProvider({ children }) {
   const [operations, setOperations] = useState([]);
+  const operationsRef = useRef(operations);
 
   const startOperation = useCallback(({ modulo, operacao, detalhe = '' }) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -16,29 +17,25 @@ export function SessionOperationsProvider({ children }) {
       status: 'em_andamento',
       detalhe
     };
-    setOperations((prev) => [entry, ...prev].slice(0, 40));
+    operationsRef.current = [entry, ...operationsRef.current].slice(0, 40);
+    setOperations(operationsRef.current);
     return id;
   }, []);
 
   const finishOperation = useCallback((id, { status, detalhe }) => {
-    if (!id) return;
-    setOperations((prev) => {
-      const next = prev.map((op) =>
-        op.id === id
-          ? { ...op, status, detalhe: detalhe != null ? detalhe : op.detalhe }
-          : op
-      );
-      const current = next.find((op) => op.id === id);
-      if (current) {
-        const text = current.detalhe || current.operacao;
-        if (status === 'concluido') {
-          pushToast({ type: 'success', message: `${current.operacao}: ${text}` });
-        } else if (status === 'falha') {
-          pushToast({ type: 'error', message: `${current.operacao}: ${text}` });
-        }
-      }
-      return next;
-    });
+    const entry = operationsRef.current.find((op) => op.id === id);
+    if (!entry) return;
+
+    const current = { ...entry, status, detalhe: detalhe ?? entry.detalhe };
+    operationsRef.current = operationsRef.current.map((op) => op.id === id ? current : op);
+    setOperations(operationsRef.current);
+
+    const message = `${current.operacao}: ${current.detalhe || current.operacao}`;
+    if (status === 'concluido') {
+      pushToast({ type: 'success', message });
+    } else if (status === 'falha') {
+      pushToast({ type: 'error', message });
+    }
   }, []);
 
   const value = useMemo(
