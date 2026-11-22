@@ -46,6 +46,7 @@ const createUser = async (req, res) => {
           return res.status(500).json({ error: 'Erro ao criar utilizador.' });
         }
 
+        res.locals.auditResource = `Usuário #${this.lastID}`;
         db.get(
           'SELECT id, name, username, role, created_at FROM users WHERE id = ?',
           [this.lastID],

@@ -4,9 +4,13 @@ const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 
 const login = (req, res) => {
-  const { username, password } = req.body;
+  const { username, password } = req.body || {};
+  if (typeof username === 'string' && username.length <= 128 && !/[\u0000-\u001f\u007f]/.test(username)) {
+    res.locals.auditAttemptedUsername = username || null;
+  }
 
-  if (!username || !password) {
+  if (typeof username !== 'string' || !username || typeof password !== 'string' || !password) {
+    res.locals.auditReason = 'Credenciais ausentes ou em formato inválido.';
     return res.status(400).json({ error: 'Utilizador e palavra-passe são obrigatórios.' });
   }
 
@@ -15,12 +19,14 @@ const login = (req, res) => {
       return res.status(500).json({ error: 'Erro de comunicação com o banco de dados.' });
     }
 
-    if (!user) {
-      return res.status(401).json({ error: 'Utilizador ou palavra-passe incorretos.' });
+    let validPassword;
+    try {
+      validPassword = user && await bcrypt.compare(password, user.password);
+    } catch {
+      return res.status(500).json({ error: 'Erro ao verificar as credenciais.' });
     }
-
-    const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
+      res.locals.auditReason = 'Credenciais incorretas.';
       return res.status(401).json({ error: 'Utilizador ou palavra-passe incorretos.' });
     }
 
@@ -31,15 +37,11 @@ const login = (req, res) => {
       { expiresIn: '8h' }
     );
 
+    req.user = { id: user.id, name: user.name, username: user.username, role: user.role };
     return res.json({
       message: 'Login realizado com sucesso',
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        role: user.role
-      }
+      user: req.user
     });
   });
 };
@@ -48,4 +50,6 @@ const me = (req, res) => {
   return res.json({ user: req.user });
 };
 
-module.exports = { login, me };
+const logout = (req, res) => res.status(204).end();
+
+module.exports = { login, logout, me };

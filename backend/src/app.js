@@ -20,10 +20,13 @@ const sshRoutes = require('./routes/sshRoutes');
 const logRoutes = require('./routes/logRoutes');
 const userRoutes = require('./routes/userRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
+const auditRoutes = require('./routes/auditRoutes');
+const { auditRequest } = require('./middleware/auditMiddleware');
 
 const app = express();
 
 app.use(cors());
+app.use('/api', auditRequest);
 app.use(express.json());
 
 // Rotas da API
@@ -35,6 +38,7 @@ app.use('/api/ssh', sshRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/audit', auditRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'online', server: 'Debian 13', timestamp: new Date() });

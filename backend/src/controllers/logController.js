@@ -14,10 +14,11 @@ const LOG_SOURCES = {
 const getLogs = async (req, res) => {
   const { type = 'system' } = req.query;
 
-  const command = LOG_SOURCES[type];
-  if (!command) {
+  if (typeof type !== 'string' || !Object.hasOwn(LOG_SOURCES, type)) {
     return res.status(400).json({ error: 'Tipo de log inválido.' });
   }
+  const command = LOG_SOURCES[type];
+  res.locals.auditResource = type;
 
   try {
     const { stdout, stderr } = await execPromise(command);

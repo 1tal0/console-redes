@@ -1,3 +1,4 @@
 node_modules
 keys
 .env
+src/database/database.sqlite*

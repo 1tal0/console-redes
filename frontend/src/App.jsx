@@ -20,6 +20,8 @@ import MailView from './components/MailView';
 import SshView from './components/SshView';
 import LogsView from './components/LogsView';
 import UsersView from './components/UsersView';
+import AuditView from './components/AuditView';
+import api from './services/api';
 import { SessionOperationsProvider } from './context/SessionOperationsContext';
 import { subscribeConnection } from './services/notifyBus';
 
@@ -30,7 +32,8 @@ const TABS_BY_ROLE = {
     { id: 'mail', label: 'Correio E-mail' },
     { id: 'ssh', label: 'Operação SSH' },
     { id: 'logs', label: 'Logs do Servidor' },
-    { id: 'users', label: 'Gerenciamento de Usuários' }
+    { id: 'users', label: 'Gerenciamento de Usuários' },
+    { id: 'audit', label: 'Trilha de Auditoria' }
   ],
   operador: [
     { id: 'dashboard', label: 'Observabilidade' },
@@ -59,7 +62,6 @@ const TAB_ICONS = {
 };
 
 const PART2_TABS = [
-  { id: 'audit', label: 'Trilha de Auditoria' },
   { id: 'services', label: 'Gestão de Serviços (Start/Stop)' },
   { id: 'enterprise', label: 'Novos Serviços Empresariais' }
 ];
@@ -72,6 +74,7 @@ export default function App() {
   );
   const [part2Notice, setPart2Notice] = useState(false);
   const [connection, setConnection] = useState('online');
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('console_n2_user');
@@ -93,10 +96,19 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('console_n2_token');
-    localStorage.removeItem('console_n2_user');
-    setUser(null);
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await api.post('/auth/logout', null, { timeout: 2500 });
+    } catch {
+      // A sessão local pode ser encerrada mesmo sem comunicação com o servidor.
+    } finally {
+      localStorage.removeItem('console_n2_token');
+      localStorage.removeItem('console_n2_user');
+      setUser(null);
+      setActiveTab('dashboard');
+      setLoggingOut(false);
+    }
   };
 
   const tabs = TABS_BY_ROLE[user?.role] || TABS_BY_ROLE.leitor;
@@ -262,10 +274,11 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleLogout}
+                disabled={loggingOut}
                 className="shrink-0 inline-flex items-center justify-center gap-1.5 h-9 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
               >
                 <LogOut className="size-3.5" />
-                Sair
+                {loggingOut ? 'Saindo…' : 'Sair'}
               </button>
             </div>
           </header>
@@ -285,6 +298,7 @@ export default function App() {
             {activeTab === 'ssh' && allowedTabIds.includes('ssh') && <SshView />}
             {activeTab === 'logs' && allowedTabIds.includes('logs') && <LogsView />}
             {activeTab === 'users' && allowedTabIds.includes('users') && <UsersView />}
+            {activeTab === 'audit' && allowedTabIds.includes('audit') && <AuditView />}
           </main>
         </div>
       </div>

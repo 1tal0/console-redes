@@ -5,6 +5,12 @@ const getMailPassword = (req) => {
   return typeof header === 'string' ? header : '';
 };
 
+function identifyMailbox(res, account) {
+  if (typeof account === 'string' && account.length <= 128 && /^[\w.+-]+@[\w.-]+$/.test(account)) {
+    res.locals.auditResource = account;
+  }
+}
+
 const handleImapError = (error, res) => {
   console.error('Erro IMAP:', error.message);
 
@@ -21,6 +27,7 @@ const handleImapError = (error, res) => {
 
 const getEmails = async (req, res) => {
   const { account, folder } = req.query;
+  identifyMailbox(res, account);
   const password = getMailPassword(req);
 
   if (!account || !password) {
@@ -37,6 +44,7 @@ const getEmails = async (req, res) => {
 
 const getEmail = async (req, res) => {
   const { account, folder, uid } = req.query;
+  identifyMailbox(res, account);
   const password = getMailPassword(req);
 
   if (!account || !password || !uid) {
@@ -52,7 +60,8 @@ const getEmail = async (req, res) => {
 };
 
 const sendEmail = async (req, res) => {
-  const { account, password, to, subject, bodyText } = req.body;
+  const { account, password, to, subject, bodyText } = req.body || {};
+  identifyMailbox(res, account);
 
   if (!account || !password || !to || !subject || !bodyText) {
     return res.status(400).json({ error: 'Todos os campos do e-mail são obrigatórios.' });
@@ -60,6 +69,10 @@ const sendEmail = async (req, res) => {
 
   try {
     const result = await sendEmailService(account, password, to, subject, bodyText);
+    if (!result.imapSaved) {
+      res.locals.auditPartial = true;
+      res.locals.auditReason = 'SMTP aceitou a mensagem. Falha ao salvar a cópia em Enviados.';
+    }
     return res.json({ message: 'E-mail enviado com sucesso via SMTP!', ...result });
   } catch (error) {
     console.error(`Erro de Envio ${error.stage || 'SMTP'}:`, error.error || error.message);

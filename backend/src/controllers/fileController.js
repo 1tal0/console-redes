@@ -35,6 +35,7 @@ const handleUpload = async (req, res) => {
     return;
   }
 
+  res.locals.auditResource = originalName.slice(0, 200);
   try {
     const localBuffer = fs.readFileSync(localFilePath);
     const localSha256 = crypto.createHash('sha256').update(localBuffer).digest('hex');
@@ -46,13 +47,18 @@ const handleUpload = async (req, res) => {
     }
 
     const integrity = await checkExistingFileIntegrity(originalName);
+    const integrityMatch = localSha256 === integrity.sha256;
+    if (!integrityMatch) {
+      res.locals.auditPartial = true;
+      res.locals.auditReason = 'Arquivo transferido, com divergência de integridade.';
+    }
 
     return res.json({
       message: 'Arquivo transferido com sucesso ao vsftpd!',
       filename: originalName,
       size: req.file.size,
       sha256: integrity.sha256,
-      integrityMatch: localSha256 === integrity.sha256,
+      integrityMatch,
       httpUrl: integrity.httpUrl
     });
   } catch (error) {
@@ -70,6 +76,7 @@ const handleUpload = async (req, res) => {
 const handleDownload = async (req, res) => {
   const filename = rejectUnsafeName(req.params.filename, res);
   if (!filename) return;
+  res.locals.auditResource = filename.slice(0, 200);
 
   try {
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
@@ -84,12 +91,14 @@ const handleDownload = async (req, res) => {
       }
       return res.status(500).json({ error: 'Falha ao realizar download via FTP.' });
     }
+    res.destroy();
   }
 };
 
 const checkIntegrity = async (req, res) => {
   const filename = rejectUnsafeName(req.params.filename, res);
   if (!filename) return;
+  res.locals.auditResource = filename.slice(0, 200);
 
   try {
     const result = await checkExistingFileIntegrity(filename);

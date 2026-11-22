@@ -2,11 +2,13 @@ require('../config/env');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const { createAuditSchema } = require('./auditSchema');
 
 const dbPath = path.resolve(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(async () => {
+  createAuditSchema(db);
   // Criar Tabela de Utilizadores
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
