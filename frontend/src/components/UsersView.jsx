@@ -13,7 +13,8 @@ const emptyForm = {
   name: '',
   username: '',
   role: 'leitor',
-  password: ''
+  password: '',
+  permissions: []
 };
 
 export default function UsersView() {
@@ -25,6 +26,7 @@ export default function UsersView() {
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [permissionGroups, setPermissionGroups] = useState([]);
 
   const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
   const isAdmin = loggedUser?.role === 'admin';
@@ -39,6 +41,7 @@ export default function UsersView() {
     try {
       const res = await api.get('/users');
       setUsers(res.data.users || []);
+      setPermissionGroups(res.data.permissionGroups || []);
       setError('');
     } catch (err) {
       setError(err.response?.data?.error || 'Falha ao listar utilizadores.');
@@ -68,10 +71,29 @@ export default function UsersView() {
       name: user.name,
       username: user.username,
       role: user.role,
-      password: ''
+      password: '',
+      permissions: user.permissions || []
     });
     setShowModal(true);
     setMessage('');
+  };
+
+  const togglePermission = ({ id, requires }, checked) => {
+    setForm(previous => {
+      const permissions = new Set(previous.permissions);
+      if (checked) {
+        permissions.add(id);
+        if (requires) permissions.add(requires);
+      } else {
+        permissions.delete(id);
+        for (const group of permissionGroups) {
+          for (const option of group.options) {
+            if (option.requires === id) permissions.delete(option.id);
+          }
+        }
+      }
+      return { ...previous, permissions: [...permissions] };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -88,8 +110,9 @@ export default function UsersView() {
     });
 
     try {
+      const permissions = form.role === 'operador' ? form.permissions : [];
       if (editingUser) {
-        const payload = { name: form.name, role: form.role };
+        const payload = { name: form.name, role: form.role, permissions };
         if (form.password.trim() !== '') {
           payload.password = form.password;
         }
@@ -97,7 +120,7 @@ export default function UsersView() {
         setMessage('Utilizador atualizado com sucesso.');
         finishOperation(opId, { status: 'concluido', detalhe: `Atualizado ${form.username}` });
       } else {
-        await api.post('/users', form);
+        await api.post('/users', { ...form, permissions });
         setMessage('Utilizador criado com sucesso.');
         finishOperation(opId, { status: 'concluido', detalhe: `Criado ${form.username}` });
       }
@@ -297,6 +320,31 @@ export default function UsersView() {
                   <p className="text-[11px] text-amber-400 mt-1">Você não pode alterar o seu próprio papel.</p>
                 )}
               </div>
+
+              {form.role === 'operador' && (
+                <fieldset className="rounded border border-slate-700 p-3 space-y-3" disabled={saving}>
+                  <legend className="px-1 text-sm font-semibold text-slate-100">Permissões do operador</legend>
+                  <p className="text-xs text-slate-400">
+                    Observabilidade está sempre disponível. Ações que dependem de consulta também selecionam essa permissão.
+                  </p>
+                  {permissionGroups.map(group => (
+                    <fieldset key={group.label} className="flex flex-wrap gap-x-4 gap-y-2 border-t border-slate-700 pt-2">
+                      <legend className="pr-2 text-xs font-semibold text-slate-300">{group.label}</legend>
+                      {group.options.map(option => (
+                        <label key={option.id} className="flex items-center gap-2 text-xs text-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={form.permissions.includes(option.id)}
+                            onChange={event => togglePermission(option, event.target.checked)}
+                            className="size-4 accent-indigo-500"
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </fieldset>
+                  ))}
+                </fieldset>
+              )}
 
               <div>
                 <label className="block text-[11px] text-slate-400 uppercase mb-1">

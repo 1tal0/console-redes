@@ -2,6 +2,7 @@ const db = require('../database/init');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
+const { publicUser } = require('../services/permissions');
 
 const login = (req, res) => {
   const { username, password } = req.body || {};
@@ -37,7 +38,7 @@ const login = (req, res) => {
       { expiresIn: '8h' }
     );
 
-    req.user = { id: user.id, name: user.name, username: user.username, role: user.role };
+    req.user = publicUser(user);
     return res.json({
       message: 'Login realizado com sucesso',
       token,
@@ -47,7 +48,7 @@ const login = (req, res) => {
 };
 
 const me = (req, res) => {
-  return res.json({ user: req.user });
+  return res.set('Cache-Control', 'no-store').json({ user: req.user });
 };
 
 const logout = (req, res) => res.status(204).end();

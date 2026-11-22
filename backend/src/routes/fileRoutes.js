@@ -3,20 +3,20 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const { getFileList, handleUpload, handleDownload, checkIntegrity } = require('../controllers/fileController');
-const { verifyToken, checkRole } = require('../middleware/authMiddleware');
+const { verifyToken, requirePermission } = require('../middleware/authMiddleware');
 
 const upload = multer({ dest: path.resolve(__dirname, '../../uploads') });
 
-router.get('/', verifyToken, getFileList);
+router.get('/', verifyToken, requirePermission('ftp.read'), getFileList);
 
-router.get('/download/:filename', verifyToken, handleDownload); // Download via FTP pelo Console
+router.get('/download/:filename', verifyToken, requirePermission('ftp.read'), handleDownload); // Download via FTP pelo Console
 
-router.get('/integrity/:filename', verifyToken, checkIntegrity);
+router.get('/integrity/:filename', verifyToken, requirePermission('ftp.read'), checkIntegrity);
 
 router.post(
   '/upload', 
   verifyToken, 
-  checkRole(['admin', 'operador']),
+  requirePermission('ftp.upload'),
   upload.single('file'), 
   handleUpload
 );

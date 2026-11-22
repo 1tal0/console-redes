@@ -55,7 +55,7 @@ function formatFtpDate(value) {
   return raw;
 }
 
-export default function FtpView() {
+export default function FtpView({ canUpload }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -64,8 +64,6 @@ export default function FtpView() {
   const [integrityResult, setIntegrityResult] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
-  const canUpload = loggedUser?.role === 'admin' || loggedUser?.role === 'operador';
   const { startOperation, finishOperation } = useSessionOperations();
 
   const fetchFiles = async () => {

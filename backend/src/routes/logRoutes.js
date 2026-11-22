@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { getLogs } = require('../controllers/logController');
-const { verifyToken, checkRole } = require('../middleware/authMiddleware');
+const { verifyToken, requirePermission } = require('../middleware/authMiddleware');
 
-// Apenas administradores e operadores podem visualizar logs do sistema
-router.get('/', verifyToken, checkRole(['admin', 'operador']), getLogs);
+router.get('/', verifyToken, requirePermission('logs.read'), getLogs);
 
 module.exports = router;

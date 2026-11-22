@@ -8,7 +8,7 @@ const STOP_WARNINGS = {
   apache2: 'Parar o Apache deixará os sites atendidos pelo serviço indisponíveis. Deseja continuar?'
 };
 
-export default function ServicesView({ active }) {
+export default function ServicesView({ active, can }) {
   const { startOperation, finishOperation } = useSessionOperations();
   const [services, setServices] = useState(null);
   const [loadError, setLoadError] = useState(false);
@@ -45,7 +45,7 @@ export default function ServicesView({ active }) {
   }, [active, refresh]);
 
   async function executeServiceAction(serviceName, action, label) {
-    if (pending.current[serviceName] || loadError) return;
+    if (!can(`services.${serviceName}.${action}`) || pending.current[serviceName] || loadError) return;
     const warning = action === 'stop' && STOP_WARNINGS[serviceName];
     if (warning && !window.confirm(warning)) return;
 
@@ -87,7 +87,7 @@ export default function ServicesView({ active }) {
         <p role="alert" className="text-sm text-amber-300 mb-4">Não foi possível atualizar o estado dos serviços.</p>
       )}
       {services ? (
-        <ServiceCards services={services} pendingActions={pendingActions} onAction={executeServiceAction} stale={loadError} />
+        <ServiceCards services={services} pendingActions={pendingActions} onAction={executeServiceAction} stale={loadError} can={can} />
       ) : !loadError && (
         <p role="status" className="text-sm text-slate-300">Carregando estado dos serviços…</p>
       )}

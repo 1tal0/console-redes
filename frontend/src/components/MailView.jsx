@@ -7,7 +7,7 @@ import { useSessionOperations } from '../context/SessionOperationsContext';
 // Formata datas; evita exibir 1970 quando a mensagem não tem data
 const formatDate = (date) => formatDateTime(date);
 
-export default function MailView() {
+export default function MailView({ canSend }) {
   const { startOperation, finishOperation } = useSessionOperations();
   // Estado da Sessão do Cliente de E-mail
   const [session, setSession] = useState(null); // { account, password }
@@ -223,6 +223,7 @@ export default function MailView() {
       <div className="bg-slate-900/80 border-b border-slate-700 px-3 py-3 md:px-5 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
         <div className="flex flex-wrap items-center gap-2">
           <button
+            disabled={!canSend}
             onClick={() => {
               setTo('');
               setSubject('');
@@ -390,7 +391,7 @@ export default function MailView() {
             <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-2 pt-2">
               <button
                 onClick={() => handleReply(selectedMail)}
-                disabled={loadingBody}
+                disabled={loadingBody || !canSend}
                 className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap min-h-11 sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               >
                 <Reply className="size-3.5 shrink-0" />
@@ -409,7 +410,7 @@ export default function MailView() {
       )}
 
       {/* MODAL DE COMPOSIÇÃO / RESPOSTA DE E-MAIL */}
-      {showComposeModal && (
+      {canSend && showComposeModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50">
           <div className="bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-700 w-full max-w-lg max-h-[90dvh] overflow-y-auto space-y-4 shadow-2xl">
             <div className="flex justify-between items-center gap-3 border-b border-slate-700 pb-3">

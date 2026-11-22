@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useSessionOperations } from '../context/SessionOperationsContext';
 
-export default function SshView() {
+export default function SshView({ canChangeHostname }) {
   const [sshInfo, setSshInfo] = useState(null);
   const [newHostname, setNewHostname] = useState('servidor-n2-teste');
   const [loading, setLoading] = useState(true);
   const [executing, setExecuting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const loggedUser = JSON.parse(localStorage.getItem('console_n2_user') || 'null');
-  const canChangeHostname = loggedUser?.role === 'admin';
   const { startOperation, finishOperation } = useSessionOperations();
 
   const fetchSshInfo = async () => {

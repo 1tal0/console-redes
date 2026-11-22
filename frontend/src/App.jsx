@@ -64,6 +64,13 @@ const TAB_ICONS = {
   enterprise: Building2
 };
 
+const OPERATOR_TABS = {
+  files: 'ftp.read',
+  mail: 'mail.read',
+  ssh: 'ssh.read',
+  logs: 'logs.read'
+};
+
 const PART2_TABS = [
   { id: 'enterprise', label: 'Novos Serviços Empresariais' }
 ];
@@ -87,6 +94,37 @@ export default function App() {
   }, []);
 
   useEffect(() => subscribeConnection(setConnection), []);
+
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    let refreshing = false;
+    const refreshSession = async () => {
+      const token = localStorage.getItem('console_n2_token');
+      if (!token || refreshing) return;
+      refreshing = true;
+      try {
+        const { data } = await api.get('/auth/me');
+        if (active && token === localStorage.getItem('console_n2_token')) {
+          localStorage.setItem('console_n2_user', JSON.stringify(data.user));
+          setUser(data.user);
+        }
+      } catch {
+        // Em caso de falha de rede, a próxima consulta tenta atualizar a sessão.
+      } finally {
+        refreshing = false;
+      }
+    };
+    void refreshSession();
+    const timer = window.setInterval(refreshSession, 15000);
+    window.addEventListener('focus', refreshSession);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshSession);
+    };
+  }, [userId]);
 
   useEffect(() => {
     const onResize = () => {
@@ -113,16 +151,15 @@ export default function App() {
     }
   };
 
-  const tabs = TABS_BY_ROLE[user?.role] || TABS_BY_ROLE.leitor;
+  const permissions = user?.permissions || [];
+  const can = (permission) => user?.role === 'admin' || permissions.includes(permission);
+  const tabs = (TABS_BY_ROLE[user?.role] || TABS_BY_ROLE.leitor).filter(({ id }) => {
+    if (user?.role !== 'operador') return true;
+    if (id === 'services') return permissions.some(permission => permission.startsWith('services.'));
+    return !OPERATOR_TABS[id] || can(OPERATOR_TABS[id]);
+  });
   const allowedTabIds = tabs.map((tab) => tab.id);
-
-  useEffect(() => {
-    if (!user) return;
-    const ids = (TABS_BY_ROLE[user.role] || TABS_BY_ROLE.leitor).map((tab) => tab.id);
-    if (!ids.includes(activeTab)) {
-      setActiveTab('dashboard');
-    }
-  }, [user, activeTab]);
+  const selectedTab = allowedTabIds.includes(activeTab) ? activeTab : 'dashboard';
 
   const handleNavigate = (id) => {
     if (!allowedTabIds.includes(id)) return;
@@ -195,7 +232,7 @@ export default function App() {
             <ul className="space-y-1">
               {tabs.map((tab) => {
                 const Icon = TAB_ICONS[tab.id] || LayoutDashboard;
-                const active = activeTab === tab.id;
+                const active = selectedTab === tab.id;
                 return (
                   <li key={tab.id}>
                     <button
@@ -294,14 +331,14 @@ export default function App() {
           )}
 
           <main className="flex-1 p-3 md:p-6 w-full max-w-7xl mx-auto">
-            {activeTab === 'dashboard' && <DashboardView />}
-            {allowedTabIds.includes('services') && <ServicesView active={activeTab === 'services'} />}
-            {activeTab === 'files' && allowedTabIds.includes('files') && <FtpView />}
-            {activeTab === 'mail' && allowedTabIds.includes('mail') && <MailView />}
-            {activeTab === 'ssh' && allowedTabIds.includes('ssh') && <SshView />}
-            {activeTab === 'logs' && allowedTabIds.includes('logs') && <LogsView />}
-            {activeTab === 'users' && allowedTabIds.includes('users') && <UsersView />}
-            {activeTab === 'audit' && allowedTabIds.includes('audit') && <AuditView />}
+            {selectedTab === 'dashboard' && <DashboardView />}
+            {allowedTabIds.includes('services') && <ServicesView active={selectedTab === 'services'} can={can} />}
+            {selectedTab === 'files' && <FtpView canUpload={can('ftp.upload')} />}
+            {selectedTab === 'mail' && <MailView canSend={can('mail.send')} />}
+            {selectedTab === 'ssh' && <SshView canChangeHostname={can('ssh.hostname')} />}
+            {selectedTab === 'logs' && <LogsView />}
+            {selectedTab === 'users' && <UsersView />}
+            {selectedTab === 'audit' && <AuditView />}
           </main>
         </div>
       </div>

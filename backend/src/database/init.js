@@ -21,6 +21,10 @@ db.serialize(async () => {
     )
   `);
 
+  db.run("ALTER TABLE users ADD COLUMN permissions_json TEXT NOT NULL DEFAULT '[]'", (error) => {
+    if (error && !error.message.includes('duplicate column name: permissions_json')) throw error;
+  });
+
   // Gerar Hashes das Palavras-passe Iniciais
   const salt = await bcrypt.genSalt(10);
   const hashAdmin = await bcrypt.hash('admin123', salt);

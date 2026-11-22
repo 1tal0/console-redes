@@ -7,7 +7,7 @@ const SERVICE_ACTIONS = [
   { action: 'restart', label: 'Reiniciar' }
 ];
 
-export default function ServiceCards({ services, pendingActions = {}, onAction, stale = false }) {
+export default function ServiceCards({ services, pendingActions = {}, onAction, stale = false, can }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
       {Object.entries(services).map(([serviceName, info]) => (
@@ -21,7 +21,7 @@ export default function ServiceCards({ services, pendingActions = {}, onAction, 
           <span className="text-[11px] md:text-[10px] text-slate-500 mt-1 font-mono break-all">{info.subState}</span>
           {onAction && (
             <div className="mt-3 flex flex-wrap justify-center gap-1">
-              {SERVICE_ACTIONS.map(({ action, label }) => (
+              {SERVICE_ACTIONS.filter(({ action }) => can(`services.${serviceName}.${action}`)).map(({ action, label }) => (
                 <button
                   key={action}
                   type="button"

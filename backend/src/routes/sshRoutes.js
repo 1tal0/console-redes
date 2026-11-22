@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { getSshInfo, handleHostnameChange } = require('../controllers/sshController');
-const { verifyToken, checkRole } = require('../middleware/authMiddleware');
+const { verifyToken, requirePermission } = require('../middleware/authMiddleware');
 
-router.get('/info', verifyToken, getSshInfo); // Todos consultam
+router.get('/info', verifyToken, requirePermission('ssh.read'), getSshInfo);
 
 router.post(
   '/hostname',
   verifyToken,
-  checkRole(['admin']), // Apenas o perfil ADMIN pode alterar o hostname
+  requirePermission('ssh.hostname'),
   handleHostnameChange
 );
 
